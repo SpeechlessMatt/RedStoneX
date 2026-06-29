@@ -30,7 +30,28 @@ int main() {
     simulator_bind_object(sim, (ConnectiveObject*)wireD);
     simulator_bind_object(sim, (ConnectiveObject*)lever_2);
 
+    simulator_add_tick_breakpoint(sim, 1);
+    simulator_add_tick_breakpoint(sim, 2);
+
     simulator_run(sim);
+
+    printf("[lever]Power: %d\n", lever->base.power);
+    printf("[wireA]Power: %d\n", wireA->base.power);
+    printf("[wireB]Power: %d\n", wireB->base.power);
+    printf("[wireC]Power: %d\n", wireC->base.power);
+    printf("[wireD]Power: %d\n", wireD->base.power);
+    printf("[lever_2]Power: %d\n", lever_2->base.power);
+
+    simulator_resume(sim);
+
+    printf("[lever]Power: %d\n", lever->base.power);
+    printf("[wireA]Power: %d\n", wireA->base.power);
+    printf("[wireB]Power: %d\n", wireB->base.power);
+    printf("[wireC]Power: %d\n", wireC->base.power);
+    printf("[wireD]Power: %d\n", wireD->base.power);
+    printf("[lever_2]Power: %d\n", lever_2->base.power);
+
+    simulator_resume(sim);
 
     printf("[lever]Power: %d\n", lever->base.power);
     printf("[wireA]Power: %d\n", wireA->base.power);

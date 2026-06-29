@@ -69,6 +69,7 @@ RedStoneSimulator* create_simulator() {
 
     sim->wheel_size = 16;
     sim->current_tick = 0;
+    sim->empty_streak = 0;
 
     sim->tick_wheel = (ConnectiveObject***)malloc(sim->wheel_size * sizeof(ConnectiveObject**));
     sim->wheel_counts = (uint32_t*)malloc(sim->wheel_size * sizeof(uint32_t));
@@ -79,6 +80,12 @@ RedStoneSimulator* create_simulator() {
         sim->wheel_capacities[i] = 4;
         sim->tick_wheel[i] = (ConnectiveObject**)malloc(sim->wheel_capacities[i] * sizeof(ConnectiveObject*));
     }
+
+#ifndef NDEBUG
+    sim->tick_breakpoint_count = 0;
+    sim->tick_breakpoint_capacity = 20;
+    sim->tick_breakpoints = (uint32_t*)malloc(sim->tick_breakpoint_capacity * sizeof(uint32_t));
+#endif
 
     return sim;
 }
@@ -94,6 +101,11 @@ void destroy_simulator(RedStoneSimulator* sim) {
     free(sim->simulate_deque->buffer);
     free(sim->simulate_deque);
     free(sim->all_objects);
+
+#ifndef NDEBUG
+    free(sim->tick_breakpoints);
+#endif
+
     free(sim);
 }
 
@@ -211,7 +223,43 @@ static inline void simulator_process_deque(RedStoneSimulator* sim) {
     }
 }
 
-bool simulator_step(RedStoneSimulator* sim, uint32_t* empty_streak) {
+#ifndef NDEBUG
+static inline void simulator_ensure_tick_breakpoint_capacity(RedStoneSimulator* sim, uint32_t required_capacity) {
+    if (sim->tick_breakpoint_capacity >= required_capacity) return;
+
+    uint32_t new_capacity = required_capacity + 8;
+    SAFE_REALLOC(sim->tick_breakpoints, new_capacity, uint32_t);
+    sim->tick_breakpoint_capacity = new_capacity;
+}
+
+void simulator_add_tick_breakpoint(RedStoneSimulator* sim, uint32_t tick) {
+    assert(sim != NULL);
+
+    // 简单去个重
+    for (uint32_t i = 0; i < sim->tick_breakpoint_count; i++) {
+        if (sim->tick_breakpoints[i] == tick) return;
+    }
+
+    simulator_ensure_tick_breakpoint_capacity(sim, sim->tick_breakpoint_count + 1);
+
+    sim->tick_breakpoints[sim->tick_breakpoint_count] = tick;
+    sim->tick_breakpoint_count++;
+}
+
+void simulator_remove_tick_breakpoint(RedStoneSimulator* sim, uint32_t tick) {
+    assert(sim != NULL);
+
+    for (uint32_t i = 0; i < sim->tick_breakpoint_count; i++) {
+        if (sim->tick_breakpoints[i] == tick) {
+            sim->tick_breakpoints[i] = sim->tick_breakpoints[sim->tick_breakpoint_count - 1];
+            sim->tick_breakpoint_count--;
+            break;
+        }
+    }
+}
+#endif
+
+bool simulator_step(RedStoneSimulator* sim) {
     assert(sim != NULL);
 
     uint32_t current_slot = sim->current_tick % sim->wheel_size;
@@ -247,35 +295,89 @@ bool simulator_step(RedStoneSimulator* sim, uint32_t* empty_streak) {
     }
 
     if (has_work) {
-        *empty_streak = 0;
+        sim->empty_streak = 0;
     } else {
-        (*empty_streak)++;
+        sim->empty_streak++;
     }
 
     sim->current_tick++;
 
     // 电路已经没有时序要更新了
-    if (*empty_streak >= sim->wheel_size) {
+    if (sim->empty_streak >= sim->wheel_size) {
         return false; 
     }
+
+#ifndef NDEBUG
+    for (uint32_t i = 0; i < sim->tick_breakpoint_count; i++) {
+        if (sim->tick_breakpoints[i] == sim->current_tick) {
+            sim->is_paused = true;
+            printf("[Tick Breakpoint: %d] Breakpoint Triggered! \n", sim->current_tick);
+            break;
+        }
+    }
+
+    if (sim->is_paused) {
+        return false;
+    }
+#endif
     return true;
 }
 
-void simulator_run(RedStoneSimulator* sim) {
+#ifndef NDEBUG
+void simulator_pause(RedStoneSimulator* sim) {
     assert(sim != NULL);
 
+    sim->is_paused = true;
+    printf("[PAUSE] 已暂停运行! ");
+}
+#endif
+
+void simulator_resume(RedStoneSimulator* sim) {
+    assert(sim != NULL);
+
+#ifndef NDEBUG
+    if (!sim->is_paused) return;
+#endif
+    if (!sim->is_running) {
+        printf("[RESUME] 从 Tick %d 恢复运行...\n", sim->current_tick);
+#ifndef NDEBUG
+        sim->is_paused = false;
+#endif
+        simulator_run(sim);
+    }
+}
+
+static inline void simulator_init_source(RedStoneSimulator* sim) {
     for (uint32_t i = 0; i < sim->object_count; i++) {
         if (sim->all_objects[i] == NULL) {
-            printf("[ERROR] 神秘object变成NULL了，内存泄漏吗？Index: %d", i);
+            printf("[ERROR] 神秘object变成NULL了，内存泄漏吗？Index: %d\n", i);
             continue;
         }
         if (sim->all_objects[i]->role != ROLE_SOURCE) continue;
 
         simulator_schedule_source(sim, sim->all_objects[i], 0);
     }
+}
 
-    uint32_t empty_streak = 0;
-    while (simulator_step(sim, &empty_streak));
+void simulator_run(RedStoneSimulator* sim) {
+    assert(sim != NULL);
+    if (sim->is_running) return;
 
-    printf("[FINISH] 电路已然停止\n");
+    sim->is_running = true;
+
+    if (sim->current_tick == 0) {
+        sim->empty_streak = 0;
+        simulator_init_source(sim);
+    }
+
+    while (simulator_step(sim));
+
+    sim->is_running = false;
+
+    if (sim->empty_streak >= sim->wheel_size) {
+        sim->current_tick = 0;
+        sim->empty_streak = 0;
+
+        printf("[FINISH] 电路已然停止\n");
+    }
 }
