@@ -373,6 +373,7 @@ class RelaySource(Source):
         if self.simulator:
             self.simulator.append_deque(self.output_slot, self, power=self.power)
 
+# 按钮是我让Gemini写的 反正框架写的差不多了
 class ButtonSource(Source):
     """高速脉冲源：按下后只持续固定个 Tick，随后自动熄灭"""
     def __init__(self, name: str, power: int = 15, duration: int = 2) -> None:
@@ -390,23 +391,18 @@ class ButtonSource(Source):
         self.pulse_state = "ON"
         
         if self.simulator:
-            # 1. 立即触发当前的亮起信号
             self.start()
-            # 2. 注册 duration 个 Tick 之后的熄灭日程
             self.simulator.schedule_source(self, delay=self.duration)
 
     @override
     def start(self, **kwargs):
-        # 借用你的时间轮触发机制
         if self.pulse_state == "ON":
-            # 第一次被时间轮激活：发出亮起信号，并准备下一次的熄灭状态
             for obj in self.connect_set:
                 if self.simulator:
                     self.simulator.append_deque(obj, self, power=self.power)
             self.pulse_state = "OFF"
             
         elif self.pulse_state == "OFF":
-            # 第二次被时间轮激活（duration 到了）：发出熄灭信号
             self.power = 0
             self.is_active = False
             self.pulse_state = "IDLE"
@@ -414,7 +410,6 @@ class ButtonSource(Source):
                 if self.simulator:
                     self.simulator.append_deque(obj, self, power=0)
         else:
-            # 默认调用（如 sim.run() 初始化时）
             super().start()
 
 if __name__ == "__main__":
