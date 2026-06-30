@@ -161,10 +161,14 @@ void simulator_ensure_wheel_capacities(RedStoneSimulator* sim, uint32_t wheel_in
    // wheel有counts 不需要初始化
 }
 
-// TODO: 当正在运行的时候禁止bind
 void simulator_bind_object(RedStoneSimulator* sim, ConnectiveObject* obj) {
     assert(sim != NULL);
     if (obj == NULL) return;
+
+    if (sim->is_running) {
+        printf("[WARNING] Cannot bind when simulator is running! \n");
+        return;
+    }
 
     for (uint32_t i = 0; i < sim->object_count; i++) {
         if (sim->all_objects[i] == obj) return;
@@ -175,8 +179,8 @@ void simulator_bind_object(RedStoneSimulator* sim, ConnectiveObject* obj) {
         SourceObject* source = (SourceObject*)obj;
         simulator_ensure_wheel_size(sim, source->max_delay);
     }
-    simulator_ensure_object_capacity(sim, sim->object_count + 1);
 
+    simulator_ensure_object_capacity(sim, sim->object_count + 1);
     sim->all_objects[sim->object_count] = obj;
     sim->object_count++;
 }
@@ -215,6 +219,9 @@ static inline void simulator_process_deque(RedStoneSimulator* sim) {
         }
         else if (target->role == ROLE_SOURCE){
             SourceObject_update();
+        }
+        else if (target->role == ROLE_SLOT) {
+            SlotObject_update((SlotObject*)target, source, power, sim);
         }
         else {
             // 所有ConnectiveObject的默认update函数
@@ -270,6 +277,7 @@ bool simulator_step(RedStoneSimulator* sim) {
         has_work = true;
         for (uint32_t i = 0; i < slot_count; i++) {
             ConnectiveObject* obj = sim->tick_wheel[current_slot][i];
+            assert(obj != NULL);
 
             if (obj->role == ROLE_SOURCE) {
                 SourceObject* src = (SourceObject*)obj;

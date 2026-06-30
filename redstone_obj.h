@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define SUPER_UPDATE(self, source, sim) ConnectiveObject_update((ConnectiveObject*)self, source, sim)
+
 typedef struct RedStoneSimulator RedStoneSimulator;
 
 typedef enum {
@@ -15,7 +17,7 @@ typedef enum {
 typedef enum {
     SUBTYPE_LINE,
     SUBTYPE_SOURCE,
-    SUBTYPE_RELAY_SOURCE,
+    SUBTYPE_SLOT,
     SUBTYPE_CUSTOM
 } ObjectSubType;
 
@@ -67,10 +69,19 @@ struct SlotObject {
     ConnectiveObject* parent;
 };
 
+bool init_object(ConnectiveObject* obj, uint32_t id, ObjectRole role, ObjectSubType subtype, uint8_t power, uint32_t limit, bool is_lossless);
 ConnectiveObject* create_object(uint32_t id, ObjectRole role, ObjectSubType subtype, uint32_t limit, bool is_lossless);
 void destroy_object(ConnectiveObject* obj);
+
+bool init_line_object(LineObject* line, uint32_t id, uint32_t limit);
 LineObject* create_line_object(uint32_t id, uint32_t limit);
+
+bool init_source_object(SourceObject* source, uint32_t id, uint32_t limit, uint8_t power, uint32_t max_delay);
 SourceObject* create_source_object(uint32_t id, uint32_t limit, uint8_t power);
+
+bool init_slot_object(SlotObject* slot, uint32_t id, uint32_t limit, ConnectiveObject* parent);
+SlotObject* create_slot_object(uint32_t id, uint32_t limit, ConnectiveObject* parent);
+
 bool connect_objects(ConnectiveObject* source, ConnectiveObject* target);
 bool disconnect_objects(ConnectiveObject* source, ConnectiveObject* target);
 
@@ -78,6 +89,7 @@ void ConnectiveObject_update(ConnectiveObject* self, ConnectiveObject* source, R
 void LineObject_update(LineObject* self, ConnectiveObject* source, uint8_t power, RedStoneSimulator* sim);
 void SourceObject_start(SourceObject* self, RedStoneSimulator* sim);
 void SourceObject_update();
+void SlotObject_update(SlotObject* self, ConnectiveObject* source, uint8_t power, RedStoneSimulator* sim);
 
 #endif
 

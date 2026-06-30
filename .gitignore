@@ -12,6 +12,7 @@ __pycache__/
 env/
 venv/
 
+.clangd
 .DS_Store
 Thumbs.db
 .vscode/

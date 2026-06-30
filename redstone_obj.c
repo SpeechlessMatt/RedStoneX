@@ -7,21 +7,31 @@
 #include "redstone_obj.h"
 #include "redstone_sim.h"
 
+bool init_object(ConnectiveObject* obj, uint32_t id, ObjectRole role, ObjectSubType subtype, uint8_t power, uint32_t limit, bool is_lossless) {
+    assert(obj != NULL);
+
+    obj->id = id;
+    obj->role = role;
+    obj->subtype = subtype;
+    obj->power = power;
+    obj->limit = limit;
+    obj->is_lossless = is_lossless;
+    obj->connect_count = 0;
+    obj->on_update_cb = NULL;
+
+    obj->connect_set = (ConnectiveObject**)malloc(limit * sizeof(ConnectiveObject*));
+    if (obj->connect_set == NULL) {
+        return false;
+    }
+
+    return true;
+}
+
 ConnectiveObject* create_object(uint32_t id, ObjectRole role, ObjectSubType subtype, uint32_t limit, bool is_lossless) {
     ConnectiveObject* obj = (ConnectiveObject*)malloc(sizeof(ConnectiveObject));
     if (obj == NULL) return NULL;
 
-    // init
-    obj->id = id;
-    obj->role = role;
-    obj->subtype = subtype;
-    obj->power = 0;
-    obj->limit = limit;
-    obj->is_lossless = is_lossless;
-    obj->connect_count = 0;
-
-    obj->connect_set = (ConnectiveObject**)malloc(limit * sizeof(ConnectiveObject*));
-    if (obj->connect_set == NULL) {
+    if (!init_object(obj, id, role, subtype, 0, limit, is_lossless)) {
         free(obj);
         return NULL;
     }
@@ -36,27 +46,11 @@ void destroy_object(ConnectiveObject* obj) {
     free(obj);
 }
 
-LineObject* create_line_object(uint32_t id, uint32_t limit) {
-    LineObject* line = (LineObject*)malloc(sizeof(LineObject));
-    if (line == NULL) return NULL;
+bool init_line_object(LineObject* line, uint32_t id, uint32_t limit) {
+    assert(line != NULL);
 
-    // 2026/6/29 Gemini说这样初始化更叼？
-    line->base = (ConnectiveObject) {
-        .id = id,
-        .role = ROLE_LINE,
-        .subtype = SUBTYPE_LINE,
-        .power = 0,
-        .is_lossless = false,
-        .connect_count = 0,
-        .limit = limit,
-        .on_update_cb = NULL
-    };
-
-    line->base.connect_set = (ConnectiveObject**)malloc(line->base.limit * sizeof(ConnectiveObject*));
-
-    if (line->base.connect_set == NULL) {
-        free(line);
-        return NULL;
+    if (!init_object(&line->base, id, ROLE_LINE, SUBTYPE_LINE, 0, limit, false)) {
+        return false;
     }
 
     line->power_map_capacity = limit;
@@ -65,38 +59,95 @@ LineObject* create_line_object(uint32_t id, uint32_t limit) {
 
     if (line->power_map == NULL) {
         free(line->base.connect_set);
+        return false;
+    }
+    
+    return true;
+}
+
+LineObject* create_line_object(uint32_t id, uint32_t limit) {
+    LineObject* line = (LineObject*)malloc(sizeof(LineObject));
+    if (line == NULL) return NULL;
+
+    if (!init_line_object(line, id, limit)) {
         free(line);
         return NULL;
     }
-    
+   
     return line;
+}
+
+void destroy_line_object(LineObject* line) {
+    if (line == NULL) return;
+
+    free(line->power_map);
+    free(line->base.connect_set);
+    free(line);
+}
+
+bool init_source_object(SourceObject* source, uint32_t id, uint32_t limit, uint8_t power, uint32_t max_delay) {
+    assert(source != NULL);
+
+    if (!init_object(&source->base, id, ROLE_SOURCE, SUBTYPE_SOURCE, power, limit, true)) {
+        return false;
+    }
+
+    source->on_start_cb = NULL;
+    source->max_delay = max_delay;
+
+    return true;
 }
 
 SourceObject* create_source_object(uint32_t id, uint32_t limit, uint8_t power) {
     SourceObject* source = (SourceObject*)malloc(sizeof(SourceObject));
     if (source == NULL) return NULL;
 
-    source->base = (ConnectiveObject) {
-        .id = id,
-        .role = ROLE_SOURCE,
-        .subtype = SUBTYPE_RELAY_SOURCE,
-        .limit = limit,
-        .power = power,
-        .is_lossless = true,
-        .connect_count = 0
-    };
-
-    source->base.connect_set = (ConnectiveObject**)malloc(source->base.limit * sizeof(ConnectiveObject*));
-
-    if (source->base.connect_set == NULL) {
+    if (!init_source_object(source, id, limit, power, 0)) {
         free(source);
         return NULL;
     }
 
-    source->on_start_cb = NULL;
-    source->max_delay = 0;
-
     return source;
+}
+
+void destroy_source_object(SourceObject* source) {
+    if (source == NULL) return;
+
+    free(source->base.connect_set);
+    free(source);
+}
+
+bool init_slot_object(SlotObject* slot, uint32_t id, uint32_t limit, ConnectiveObject* parent) {
+    assert(slot != NULL && parent != NULL);
+
+    if (!init_object(&slot->base, id, ROLE_SLOT, SUBTYPE_SLOT, 0, limit, true)) {
+        return false;
+    }
+
+    slot->parent = parent;
+    connect_objects((ConnectiveObject*)slot, slot->parent);
+
+    return true;
+}
+
+SlotObject* create_slot_object(uint32_t id, uint32_t limit, ConnectiveObject* parent) {
+    SlotObject* slot = (SlotObject*)malloc(sizeof(SlotObject));
+    if (slot == NULL) return NULL;
+
+    if (!init_slot_object(slot, id, limit, parent)) {
+        free(slot);
+        return NULL;
+    }
+
+    return slot;
+}
+
+void destroy_slot_object(SlotObject* slot) {
+    if (slot == NULL) return;
+
+    // TODO: 要不要对父类干点啥事？
+    free(slot->base.connect_set);
+    free(slot);
 }
 
 bool connect_objects(ConnectiveObject* source, ConnectiveObject* target) {
@@ -217,15 +268,29 @@ void LineObject_update(LineObject* self, ConnectiveObject* source, uint8_t power
     if (next_power != self->base.power) {
         self->base.power = next_power;
         // 调用通用update（这个update会把自己能量传给其他人）
-        ConnectiveObject_update((ConnectiveObject*)self, source, sim);
+        SUPER_UPDATE(self, source, sim);
     }
 }
 
 void SourceObject_start(SourceObject* self, RedStoneSimulator* sim) {
-    ConnectiveObject_update((ConnectiveObject*)self, NULL, sim);
+    SUPER_UPDATE(self, NULL, sim);
 }
 
 void SourceObject_update() {
     // JUST DO NOTHING~
     return;
+}
+
+void SlotObject_update(SlotObject* self, ConnectiveObject* source, uint8_t power, RedStoneSimulator* sim) {
+    assert(self != NULL && sim != NULL);
+
+    self->base.power = power;
+
+    // 单向集束接口特性，就是如果传进来信号，只转发给parent;如果是parent给的信号就发给其他人
+    if (source == self->parent) {
+        SUPER_UPDATE(self, source, sim);
+    }
+    else {
+        simulator_append_deque(sim, self->parent, (ConnectiveObject*)self, self->base.power);
+    }
 }
