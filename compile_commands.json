@@ -1,0 +1,69 @@
+[
+  {
+    "file": "src/redstonex_sim.c",
+    "arguments": [
+      "/usr/bin/clang",
+      "-O3",
+      "-Wall",
+      "-Wextra",
+      "-Iinclude",
+      "-fPIC",
+      "-c",
+      "src/redstonex_sim.c",
+      "-o",
+      "src/redstonex_sim.o"
+    ],
+    "directory": "/home/edbinmatt/PythonProjects/MCRedStone",
+    "output": "src/redstonex_sim.o"
+  },
+  {
+    "file": "src/redstonex_obj.c",
+    "arguments": [
+      "/usr/bin/clang",
+      "-O3",
+      "-Wall",
+      "-Wextra",
+      "-Iinclude",
+      "-fPIC",
+      "-c",
+      "src/redstonex_obj.c",
+      "-o",
+      "src/redstonex_obj.o"
+    ],
+    "directory": "/home/edbinmatt/PythonProjects/MCRedStone",
+    "output": "src/redstonex_obj.o"
+  },
+  {
+    "file": "src/redstonex_components.c",
+    "arguments": [
+      "/usr/bin/clang",
+      "-O3",
+      "-Wall",
+      "-Wextra",
+      "-Iinclude",
+      "-fPIC",
+      "-c",
+      "src/redstonex_components.c",
+      "-o",
+      "src/redstonex_components.o"
+    ],
+    "directory": "/home/edbinmatt/PythonProjects/MCRedStone",
+    "output": "src/redstonex_components.o"
+  },
+  {
+    "file": "tests/test.c",
+    "arguments": [
+      "/usr/bin/clang",
+      "-O3",
+      "-Wall",
+      "-Wextra",
+      "-Iinclude",
+      "-fPIC",
+      "tests/test.c",
+      "-o",
+      "test_redstonex"
+    ],
+    "directory": "/home/edbinmatt/PythonProjects/MCRedStone",
+    "output": "test_redstonex"
+  }
+]

@@ -1,5 +1,5 @@
-#ifndef REDSTONE_SIM_H
-#define REDSTONE_SIM_H
+#ifndef REDSTONEX_SIM_H
+#define REDSTONEX_SIM_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -7,32 +7,32 @@
 #include "redstonex_obj.h"
 #include "redstonex_types.h"
 
-typedef struct RedStoneSimulator RedStoneSimulator;
-typedef struct SimulateEvent SimulateEvent;
-typedef struct SimulateDeque SimulateDeque;
+typedef struct RSXSimulator RSXSimulator;
+typedef struct RSXSimulateEvent RSXSimulateEvent;
+typedef struct RSXSimulateDeque RSXSimulateDeque;
 
-struct SimulateEvent {
-    ConnectiveObject* target_object;
-    ConnectiveObject* source_object;
+struct RSXSimulateEvent {
+    RSXConnectiveObject* target_object;
+    RSXConnectiveObject* source_object;
     uint8_t power;
-    PowerType type;
+    RSXPowerType type;
 };
 
-struct SimulateDeque{
-    SimulateEvent* buffer;
+struct RSXSimulateDeque{
+    RSXSimulateEvent* buffer;
     uint32_t capacity;
     uint32_t head;
     uint32_t tail;
 };
 
-struct RedStoneSimulator {
-    ConnectiveObject** all_objects; 
+struct RSXSimulator {
+    RSXConnectiveObject** all_objects; 
     uint32_t object_count;
     uint32_t object_capacity;
 
-    SimulateDeque* simulate_deque; 
+    RSXSimulateDeque* simulate_deque; 
 
-    ConnectiveObject*** tick_wheel; 
+    RSXConnectiveObject*** tick_wheel; 
     uint32_t* wheel_counts;
     uint32_t* wheel_capacities;
 
@@ -49,19 +49,19 @@ struct RedStoneSimulator {
 #endif
 };
 
-void simulator_append_deque(RedStoneSimulator* sim, ConnectiveObject* target, ConnectiveObject* from, uint8_t power, PowerType type);
-void simulator_schedule_source(RedStoneSimulator* sim, ConnectiveObject* source, uint32_t delay);
+void rsx_simulator_append_deque(RSXSimulator* sim, RSXConnectiveObject* target, RSXConnectiveObject* from, uint8_t power, RSXPowerType type);
+void rsx_simulator_schedule_source(RSXSimulator* sim, RSXConnectiveObject* source, uint32_t delay);
 
-RedStoneSimulator* create_simulator();
-void simulator_bind_object(RedStoneSimulator* sim, ConnectiveObject* obj);
-void simulator_run(RedStoneSimulator* sim);
-void simulator_resume(RedStoneSimulator* sim);
+RSXSimulator* rsx_create_simulator();
+void rsx_simulator_bind_object(RSXSimulator* sim, RSXConnectiveObject* obj);
+void rsx_simulator_run(RSXSimulator* sim);
+void rsx_simulator_resume(RSXSimulator* sim);
 
 #ifndef NDEBUG
-void simulator_add_tick_breakpoint(RedStoneSimulator* sim, uint32_t tick);
-void simulator_remove_tick_breakpoint(RedStoneSimulator* sim, uint32_t tick);
-bool simulator_step(RedStoneSimulator* sim);
-void simulator_pause(RedStoneSimulator* sim);
+void rsx_simulator_add_tick_breakpoint(RSXSimulator* sim, uint32_t tick);
+void rsx_simulator_remove_tick_breakpoint(RSXSimulator* sim, uint32_t tick);
+bool rsx_simulator_step(RSXSimulator* sim);
+void rsx_simulator_pause(RSXSimulator* sim);
 #endif
 
 #endif

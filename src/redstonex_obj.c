@@ -9,7 +9,7 @@
 #include "redstonex_sim.h"
 #include "redstonex_types.h"
 
-bool init_object(ConnectiveObject* obj, uint32_t id, ObjectRole role, const char* uri, uint8_t power, uint32_t limit, bool is_lossless, bool is_weak_transmissible) {
+bool rsx_init_object(RSXConnectiveObject* obj, uint32_t id, RSXObjectRole role, const char* uri, uint8_t power, uint32_t limit, bool is_lossless, bool is_weak_transmissible) {
     assert(obj != NULL);
 
     obj->id = id;
@@ -20,9 +20,9 @@ bool init_object(ConnectiveObject* obj, uint32_t id, ObjectRole role, const char
     obj->is_lossless = is_lossless;
     obj->is_weak_transmissible = is_weak_transmissible;
     obj->connect_count = 0;
-    obj->on_update_cb = ConnectiveObject_update;
+    obj->on_update_cb = RSXConnectiveObject_update;
 
-    obj->connect_set = (ConnectiveObject**)malloc(limit * sizeof(ConnectiveObject*));
+    obj->connect_set = (RSXConnectiveObject**)malloc(limit * sizeof(RSXConnectiveObject*));
     if (obj->connect_set == NULL) {
         return false;
     }
@@ -30,11 +30,11 @@ bool init_object(ConnectiveObject* obj, uint32_t id, ObjectRole role, const char
     return true;
 }
 
-ConnectiveObject* create_object(uint32_t id, ObjectRole role, uint32_t limit, bool is_lossless, bool is_weak_transmissible) {
-    ConnectiveObject* obj = (ConnectiveObject*)malloc(sizeof(ConnectiveObject));
+RSXConnectiveObject* rsx_create_object(uint32_t id, RSXObjectRole role, uint32_t limit, bool is_lossless, bool is_weak_transmissible) {
+    RSXConnectiveObject* obj = (RSXConnectiveObject*)malloc(sizeof(RSXConnectiveObject));
     if (obj == NULL) return NULL;
 
-    if (!init_object(obj, id, role, URI_OBJECT, 0, limit, is_lossless, is_weak_transmissible)) {
+    if (!rsx_init_object(obj, id, role, RSX_URI_OBJECT, 0, limit, is_lossless, is_weak_transmissible)) {
         free(obj);
         return NULL;
     }
@@ -42,25 +42,25 @@ ConnectiveObject* create_object(uint32_t id, ObjectRole role, uint32_t limit, bo
     return obj;
 }
 
-void destroy_object(ConnectiveObject* obj) {
+void rsx_destroy_object(RSXConnectiveObject* obj) {
     if (obj == NULL) return;
 
     free(obj->connect_set);
     free(obj);
 }
 
-bool init_line_object(LineObject* line, uint32_t id, const char* uri, uint32_t limit) {
+bool rsx_init_line_object(RSXLineObject* line, uint32_t id, const char* uri, uint32_t limit) {
     assert(line != NULL);
 
     // 默认可穿透
-    if (!init_object(&line->base, id, ROLE_LINE, uri, 0, limit, false, true)) {
+    if (!rsx_init_object(&line->base, id, ROLE_LINE, uri, 0, limit, false, true)) {
         return false;
     }
-    line->base.on_update_cb = LineObject_update;
+    line->base.on_update_cb = RSXLineObject_update;
 
     line->power_map_capacity = limit;
     line->power_map_count = 0;
-    line->power_map = (PowerRecord*)malloc(line->power_map_capacity * sizeof(PowerRecord));
+    line->power_map = (RSXPowerRecord*)malloc(line->power_map_capacity * sizeof(RSXPowerRecord));
 
     if (line->power_map == NULL) {
         free(line->base.connect_set);
@@ -70,11 +70,11 @@ bool init_line_object(LineObject* line, uint32_t id, const char* uri, uint32_t l
     return true;
 }
 
-LineObject* create_line_object(uint32_t id, uint32_t limit) {
-    LineObject* line = (LineObject*)malloc(sizeof(LineObject));
+RSXLineObject* rsx_create_line_object(uint32_t id, uint32_t limit) {
+    RSXLineObject* line = (RSXLineObject*)malloc(sizeof(RSXLineObject));
     if (line == NULL) return NULL;
 
-    if (!init_line_object(line, id, URI_LINE, limit)) {
+    if (!rsx_init_line_object(line, id, RSX_URI_LINE, limit)) {
         free(line);
         return NULL;
     }
@@ -82,7 +82,7 @@ LineObject* create_line_object(uint32_t id, uint32_t limit) {
     return line;
 }
 
-void destroy_line_object(LineObject* line) {
+void destroy_line_object(RSXLineObject* line) {
     if (line == NULL) return;
 
     free(line->power_map);
@@ -90,25 +90,25 @@ void destroy_line_object(LineObject* line) {
     free(line);
 }
 
-bool init_source_object(SourceObject* source, uint32_t id, const char* uri, uint32_t limit, uint8_t power, uint32_t max_delay) {
+bool rsx_init_source_object(RSXSourceObject* source, uint32_t id, const char* uri, uint32_t limit, uint8_t power, uint32_t max_delay) {
     assert(source != NULL);
 
-    if (!init_object(&source->base, id, ROLE_SOURCE, uri, power, limit, true, true)) {
+    if (!rsx_init_object(&source->base, id, ROLE_SOURCE, uri, power, limit, true, true)) {
         return false;
     }
 
-    source->base.on_update_cb = SourceObject_update;
-    source->on_start_cb = SourceObject_start;
+    source->base.on_update_cb = RSXSourceObject_update;
+    source->on_start_cb = RSXSourceObject_start;
     source->max_delay = max_delay;
 
     return true;
 }
 
-SourceObject* create_source_object(uint32_t id, uint32_t limit, uint8_t power) {
-    SourceObject* source = (SourceObject*)malloc(sizeof(SourceObject));
+RSXSourceObject* rsx_create_source_object(uint32_t id, uint32_t limit, uint8_t power) {
+    RSXSourceObject* source = (RSXSourceObject*)malloc(sizeof(RSXSourceObject));
     if (source == NULL) return NULL;
 
-    if (!init_source_object(source, id, URI_SOURCE, limit, power, 0)) {
+    if (!rsx_init_source_object(source, id, RSX_URI_SOURCE, limit, power, 0)) {
         free(source);
         return NULL;
     }
@@ -116,34 +116,34 @@ SourceObject* create_source_object(uint32_t id, uint32_t limit, uint8_t power) {
     return source;
 }
 
-void destroy_source_object(SourceObject* source) {
+void rsx_destroy_source_object(RSXSourceObject* source) {
     if (source == NULL) return;
 
     free(source->base.connect_set);
     free(source);
 }
 
-bool init_slot_object(SlotObject* slot, uint32_t id, const char* uri, uint32_t limit, ConnectiveObject* parent, PowerType source_power_type) {
+bool rsx_init_slot_object(RSXSlotObject* slot, uint32_t id, const char* uri, uint32_t limit, RSXConnectiveObject* parent, RSXPowerType source_power_type) {
     assert(slot != NULL && parent != NULL);
 
-    if (!init_object(&slot->base, id, ROLE_SLOT, uri, 0, limit, true, true)) {
+    if (!rsx_init_object(&slot->base, id, ROLE_SLOT, uri, 0, limit, true, true)) {
         return false;
     }
-    slot->base.on_update_cb = SlotObject_update;
+    slot->base.on_update_cb = RSXSlotObject_update;
 
     slot->parent = parent;
     slot->source_power_type = source_power_type;
-    connect_objects((ConnectiveObject*)slot, slot->parent);
+    rsx_connect_objects((RSXConnectiveObject*)slot, slot->parent);
 
     return true;
 }
 
-SlotObject* create_slot_object(uint32_t id, ConnectiveObject* parent, PowerType source_power_type) {
-    SlotObject* slot = (SlotObject*)malloc(sizeof(SlotObject));
+RSXSlotObject* rsx_create_slot_object(uint32_t id, RSXConnectiveObject* parent, RSXPowerType source_power_type) {
+    RSXSlotObject* slot = (RSXSlotObject*)malloc(sizeof(RSXSlotObject));
     if (slot == NULL) return NULL;
 
     // 因为update中的简单能量类型裁决系统决定了SlotObject默认只能连接父类和一个其他元件
-    if (!init_slot_object(slot, id, URI_SLOT, 2, parent, source_power_type)) {
+    if (!rsx_init_slot_object(slot, id, RSX_URI_SLOT, 2, parent, source_power_type)) {
         free(slot);
         return NULL;
     }
@@ -151,7 +151,7 @@ SlotObject* create_slot_object(uint32_t id, ConnectiveObject* parent, PowerType 
     return slot;
 }
 
-void destroy_slot_object(SlotObject* slot) {
+void rsx_destroy_slot_object(RSXSlotObject* slot) {
     if (slot == NULL) return;
 
     // TODO: 要不要对父类干点啥事？
@@ -159,7 +159,7 @@ void destroy_slot_object(SlotObject* slot) {
     free(slot);
 }
 
-bool connect_objects(ConnectiveObject* source, ConnectiveObject* target) {
+bool rsx_connect_objects(RSXConnectiveObject* source, RSXConnectiveObject* target) {
     if (source == NULL || target == NULL) return false;
 
     if (source->connect_count >= source->limit || target->connect_count >= target->limit) {
@@ -176,7 +176,7 @@ bool connect_objects(ConnectiveObject* source, ConnectiveObject* target) {
     return true;
 }
 
-bool disconnect_objects(ConnectiveObject* source, ConnectiveObject* target) {
+bool rsx_disconnect_objects(RSXConnectiveObject* source, RSXConnectiveObject* target) {
     if (source == NULL || target == NULL) return false;
 
     bool source_found = false;
@@ -203,26 +203,26 @@ bool disconnect_objects(ConnectiveObject* source, ConnectiveObject* target) {
     return source_found && target_found;
 }
 
-void ConnectiveObject_broadcast(ConnectiveObject* self, ConnectiveObject* source, uint8_t power, PowerType type, RedStoneSimulator* sim) {
+void RSXConnectiveObject_broadcast(RSXConnectiveObject* self, RSXConnectiveObject* source, uint8_t power, RSXPowerType type, RSXSimulator* sim) {
     assert(self != NULL);
 
     for (uint32_t i = 0; i < self->connect_count; i++) {
         if (self->connect_set[i] == source) continue;
 
-        simulator_append_deque(sim, self->connect_set[i], self, power, type);
+        rsx_simulator_append_deque(sim, self->connect_set[i], self, power, type);
     }
 }
 
-void ConnectiveObject_update(SimulateEvent* event, RedStoneSimulator* sim) {
+void RSXConnectiveObject_update(RSXSimulateEvent* event, RSXSimulator* sim) {
     assert(event != NULL && sim != NULL && event->target_object != NULL);
     
-    ConnectiveObject* self = event->target_object;
+    RSXConnectiveObject* self = event->target_object;
     self->power = event->power;
 
-    SUPER_BROADCAST(self, event->source_object, self->power, event->type, sim);
+    RSX_SUPER_BROADCAST(self, event->source_object, self->power, event->type, sim);
 }
 
-static inline uint8_t LineObject_max_power(PowerRecord* map, uint32_t count) {
+static inline uint8_t RSXLineObject_max_power(RSXPowerRecord* map, uint32_t count) {
     uint8_t max_power = 0;
     for (uint32_t i = 0; i < count; i++) {
         if (map[i].power > max_power) max_power = map[i].power;
@@ -230,13 +230,13 @@ static inline uint8_t LineObject_max_power(PowerRecord* map, uint32_t count) {
     return max_power;
 }
 
-void LineObject_update(SimulateEvent* event, RedStoneSimulator* sim) {
+void RSXLineObject_update(RSXSimulateEvent* event, RSXSimulator* sim) {
     assert(event != NULL && sim != NULL);
 
-    LineObject* self = (LineObject*)event->target_object;
-    ConnectiveObject* source = event->source_object;
+    RSXLineObject* self = (RSXLineObject*)event->target_object;
+    RSXConnectiveObject* source = event->source_object;
     uint8_t power = event->power;
-    PowerType type = event->type;
+    RSXPowerType type = event->type;
 
     if (self->power_map == NULL) return;
 
@@ -298,32 +298,32 @@ void LineObject_update(SimulateEvent* event, RedStoneSimulator* sim) {
         }
     }
 
-    uint8_t next_power = LineObject_max_power(self->power_map, self->power_map_count);
+    uint8_t next_power = RSXLineObject_max_power(self->power_map, self->power_map_count);
     if (next_power != self->base.power) {
         self->base.power = next_power;
         // 调用通用update（这个update会把自己能量传给其他人）
-        SUPER_BROADCAST(self, source, self->base.power, POWER_WEAK, sim);
+        RSX_SUPER_BROADCAST(self, source, self->base.power, POWER_WEAK, sim);
     }
 }
 
-void SourceObject_start(SourceObject* self, RedStoneSimulator* sim) {
-    SUPER_BROADCAST(self, NULL, self->base.power, POWER_STRONG, sim);
+void RSXSourceObject_start(RSXSourceObject* self, RSXSimulator* sim) {
+    RSX_SUPER_BROADCAST(self, NULL, self->base.power, POWER_STRONG, sim);
 }
 
-void SourceObject_update(SimulateEvent* event, RedStoneSimulator* sim) {
+void RSXSourceObject_update(RSXSimulateEvent* event, RSXSimulator* sim) {
     // JUST DO NOTHING~
     UNUSED(event);
     UNUSED(sim);
     return;
 }
 
-void SlotObject_update(SimulateEvent* event, RedStoneSimulator* sim) {
+void RSXSlotObject_update(RSXSimulateEvent* event, RSXSimulator* sim) {
     assert(event != NULL && sim != NULL);
 
-    SlotObject* self = (SlotObject*)event->target_object;
-    ConnectiveObject* source = event->source_object;
+    RSXSlotObject* self = (RSXSlotObject*)event->target_object;
+    RSXConnectiveObject* source = event->source_object;
     uint8_t power = event->power;
-    PowerType type = event->type;
+    RSXPowerType type = event->type;
 
     assert(self != NULL);
 
@@ -335,9 +335,9 @@ void SlotObject_update(SimulateEvent* event, RedStoneSimulator* sim) {
     // 该简单集束接口不做任何裁决
     // 单向集束接口特性，就是如果传进来信号，只转发给parent;如果是parent给的信号就发给其他人
     if (source == self->parent) {
-        SUPER_BROADCAST(self, source, self->base.power, self->source_power_type, sim);
+        RSX_SUPER_BROADCAST(self, source, self->base.power, self->source_power_type, sim);
     }
     else {
-        simulator_append_deque(sim, self->parent, (ConnectiveObject*)self, self->base.power, type);
+        rsx_simulator_append_deque(sim, self->parent, (RSXConnectiveObject*)self, self->base.power, type);
     }
 }

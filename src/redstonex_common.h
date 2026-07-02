@@ -1,5 +1,5 @@
-#ifndef REDSTONE_COMMON_H
-#define REDSTONE_COMMON_H
+#ifndef REDSTONEX_COMMON_H
+#define REDSTONEX_COMMON_H
 
 #include <stdio.h>
 #include <stdlib.h>
