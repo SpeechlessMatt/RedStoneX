@@ -7,6 +7,7 @@
 #include "redstone_sim.h"
 #include "redstone_common.h"
 #include "redstone_obj.h"
+#include "redstone_types.h"
 
 SimulateDeque* create_sim_deque(uint32_t capacity) {
     SimulateDeque* q = (SimulateDeque*)malloc(sizeof(SimulateDeque));
@@ -36,13 +37,14 @@ bool deque_is_empty(SimulateDeque* q) {
     return q->tail == q->head;
 }
 
-bool deque_push(SimulateDeque* q, ConnectiveObject* target_obj, ConnectiveObject* from_obj, uint8_t power) {
+bool deque_push(SimulateDeque* q, ConnectiveObject* target_obj, ConnectiveObject* from_obj, uint8_t power, PowerType type) {
     if (q == NULL || target_obj == NULL || from_obj == NULL) return false;
     if (deque_is_overflow(q)) return false;
 
     q->buffer[q->tail].target_object = target_obj;
     q->buffer[q->tail].source_object = from_obj;
     q->buffer[q->tail].power = power;
+    q->buffer[q->tail].type = type;
 
     q->tail = (q->tail + 1) % q->capacity;
     return true;
@@ -185,9 +187,9 @@ void simulator_bind_object(RedStoneSimulator* sim, ConnectiveObject* obj) {
     sim->object_count++;
 }
 
-void simulator_append_deque(RedStoneSimulator* sim, ConnectiveObject* target, ConnectiveObject* from, uint8_t power){
+void simulator_append_deque(RedStoneSimulator* sim, ConnectiveObject* target, ConnectiveObject* from, uint8_t power, PowerType type){
     assert(sim != NULL);
-    if (!deque_push(sim->simulate_deque, target, from, power)) {
+    if (!deque_push(sim->simulate_deque, target, from, power, type)) {
         printf("[ERROR] 无法入队？满了？这么夸张？");
         exit(EXIT_FAILURE);
     }
@@ -208,24 +210,9 @@ static inline void simulator_process_deque(RedStoneSimulator* sim) {
     while (!deque_is_empty(sim->simulate_deque)) {
         SimulateEvent event = deque_pop(sim->simulate_deque);
         ConnectiveObject* target = event.target_object;
-        ConnectiveObject* source = event.source_object;
-        uint8_t power = event.power;
         
         if (target->on_update_cb != NULL) {
-            target->on_update_cb(target, source, power, sim);
-        }
-        else if (target->role == ROLE_LINE) {
-            LineObject_update((LineObject*)target, source, power, sim);
-        }
-        else if (target->role == ROLE_SOURCE){
-            SourceObject_update();
-        }
-        else if (target->role == ROLE_SLOT) {
-            SlotObject_update((SlotObject*)target, source, power, sim);
-        }
-        else {
-            // 所有ConnectiveObject的默认update函数
-            ConnectiveObject_update(target, source, sim);
+            target->on_update_cb(&event, sim);
         }
     }
 }
@@ -282,13 +269,8 @@ bool simulator_step(RedStoneSimulator* sim) {
             if (obj->role == ROLE_SOURCE) {
                 SourceObject* src = (SourceObject*)obj;
 
-                // 用if else来优化 基础类不使用函数指针启动
                 if (src->on_start_cb != NULL) {
                     src->on_start_cb(src, sim);
-                }
-                else {
-                    // ROLE_SOURCE 的默认start函数
-                    SourceObject_start((SourceObject*)obj, sim);
                 }
             }
         }

@@ -5,19 +5,22 @@
 #include <assert.h>
 
 #include "redstone_obj.h"
+#include "redstone_common.h"
 #include "redstone_sim.h"
+#include "redstone_types.h"
 
-bool init_object(ConnectiveObject* obj, uint32_t id, ObjectRole role, ObjectSubType subtype, uint8_t power, uint32_t limit, bool is_lossless) {
+bool init_object(ConnectiveObject* obj, uint32_t id, ObjectRole role, const char* uri, uint8_t power, uint32_t limit, bool is_lossless, bool is_weak_transmissible) {
     assert(obj != NULL);
 
     obj->id = id;
     obj->role = role;
-    obj->subtype = subtype;
+    obj->uri = uri;
     obj->power = power;
     obj->limit = limit;
     obj->is_lossless = is_lossless;
+    obj->is_weak_transmissible = is_weak_transmissible;
     obj->connect_count = 0;
-    obj->on_update_cb = NULL;
+    obj->on_update_cb = ConnectiveObject_update;
 
     obj->connect_set = (ConnectiveObject**)malloc(limit * sizeof(ConnectiveObject*));
     if (obj->connect_set == NULL) {
@@ -27,11 +30,11 @@ bool init_object(ConnectiveObject* obj, uint32_t id, ObjectRole role, ObjectSubT
     return true;
 }
 
-ConnectiveObject* create_object(uint32_t id, ObjectRole role, ObjectSubType subtype, uint32_t limit, bool is_lossless) {
+ConnectiveObject* create_object(uint32_t id, ObjectRole role, uint32_t limit, bool is_lossless, bool is_weak_transmissible) {
     ConnectiveObject* obj = (ConnectiveObject*)malloc(sizeof(ConnectiveObject));
     if (obj == NULL) return NULL;
 
-    if (!init_object(obj, id, role, subtype, 0, limit, is_lossless)) {
+    if (!init_object(obj, id, role, URI_OBJECT, 0, limit, is_lossless, is_weak_transmissible)) {
         free(obj);
         return NULL;
     }
@@ -46,12 +49,14 @@ void destroy_object(ConnectiveObject* obj) {
     free(obj);
 }
 
-bool init_line_object(LineObject* line, uint32_t id, uint32_t limit) {
+bool init_line_object(LineObject* line, uint32_t id, const char* uri, uint32_t limit) {
     assert(line != NULL);
 
-    if (!init_object(&line->base, id, ROLE_LINE, SUBTYPE_LINE, 0, limit, false)) {
+    // 默认可穿透
+    if (!init_object(&line->base, id, ROLE_LINE, uri, 0, limit, false, true)) {
         return false;
     }
+    line->base.on_update_cb = LineObject_update;
 
     line->power_map_capacity = limit;
     line->power_map_count = 0;
@@ -69,7 +74,7 @@ LineObject* create_line_object(uint32_t id, uint32_t limit) {
     LineObject* line = (LineObject*)malloc(sizeof(LineObject));
     if (line == NULL) return NULL;
 
-    if (!init_line_object(line, id, limit)) {
+    if (!init_line_object(line, id, URI_LINE, limit)) {
         free(line);
         return NULL;
     }
@@ -85,14 +90,15 @@ void destroy_line_object(LineObject* line) {
     free(line);
 }
 
-bool init_source_object(SourceObject* source, uint32_t id, uint32_t limit, uint8_t power, uint32_t max_delay) {
+bool init_source_object(SourceObject* source, uint32_t id, const char* uri, uint32_t limit, uint8_t power, uint32_t max_delay) {
     assert(source != NULL);
 
-    if (!init_object(&source->base, id, ROLE_SOURCE, SUBTYPE_SOURCE, power, limit, true)) {
+    if (!init_object(&source->base, id, ROLE_SOURCE, uri, power, limit, true, true)) {
         return false;
     }
 
-    source->on_start_cb = NULL;
+    source->base.on_update_cb = SourceObject_update;
+    source->on_start_cb = SourceObject_start;
     source->max_delay = max_delay;
 
     return true;
@@ -102,7 +108,7 @@ SourceObject* create_source_object(uint32_t id, uint32_t limit, uint8_t power) {
     SourceObject* source = (SourceObject*)malloc(sizeof(SourceObject));
     if (source == NULL) return NULL;
 
-    if (!init_source_object(source, id, limit, power, 0)) {
+    if (!init_source_object(source, id, URI_SOURCE, limit, power, 0)) {
         free(source);
         return NULL;
     }
@@ -117,24 +123,27 @@ void destroy_source_object(SourceObject* source) {
     free(source);
 }
 
-bool init_slot_object(SlotObject* slot, uint32_t id, uint32_t limit, ConnectiveObject* parent) {
+bool init_slot_object(SlotObject* slot, uint32_t id, const char* uri, uint32_t limit, ConnectiveObject* parent, PowerType source_power_type) {
     assert(slot != NULL && parent != NULL);
 
-    if (!init_object(&slot->base, id, ROLE_SLOT, SUBTYPE_SLOT, 0, limit, true)) {
+    if (!init_object(&slot->base, id, ROLE_SLOT, uri, 0, limit, true, true)) {
         return false;
     }
+    slot->base.on_update_cb = SlotObject_update;
 
     slot->parent = parent;
+    slot->source_power_type = source_power_type;
     connect_objects((ConnectiveObject*)slot, slot->parent);
 
     return true;
 }
 
-SlotObject* create_slot_object(uint32_t id, uint32_t limit, ConnectiveObject* parent) {
+SlotObject* create_slot_object(uint32_t id, ConnectiveObject* parent, PowerType source_power_type) {
     SlotObject* slot = (SlotObject*)malloc(sizeof(SlotObject));
     if (slot == NULL) return NULL;
 
-    if (!init_slot_object(slot, id, limit, parent)) {
+    // 因为update中的简单能量类型裁决系统决定了SlotObject默认只能连接父类和一个其他元件
+    if (!init_slot_object(slot, id, URI_SLOT, 2, parent, source_power_type)) {
         free(slot);
         return NULL;
     }
@@ -194,14 +203,23 @@ bool disconnect_objects(ConnectiveObject* source, ConnectiveObject* target) {
     return source_found && target_found;
 }
 
-void ConnectiveObject_update(ConnectiveObject* self, ConnectiveObject* source, RedStoneSimulator* sim) {
-    assert(self != NULL && sim != NULL);
+void ConnectiveObject_broadcast(ConnectiveObject* self, ConnectiveObject* source, uint8_t power, PowerType type, RedStoneSimulator* sim) {
+    assert(self != NULL);
 
     for (uint32_t i = 0; i < self->connect_count; i++) {
         if (self->connect_set[i] == source) continue;
 
-        simulator_append_deque(sim, self->connect_set[i], self, self->power);
+        simulator_append_deque(sim, self->connect_set[i], self, power, type);
     }
+}
+
+void ConnectiveObject_update(SimulateEvent* event, RedStoneSimulator* sim) {
+    assert(event != NULL && sim != NULL && event->target_object != NULL);
+    
+    ConnectiveObject* self = event->target_object;
+    self->power = event->power;
+
+    SUPER_BROADCAST(self, event->source_object, self->power, event->type, sim);
 }
 
 static inline uint8_t LineObject_max_power(PowerRecord* map, uint32_t count) {
@@ -212,17 +230,31 @@ static inline uint8_t LineObject_max_power(PowerRecord* map, uint32_t count) {
     return max_power;
 }
 
-void LineObject_update(LineObject* self, ConnectiveObject* source, uint8_t power, RedStoneSimulator* sim) {
-    assert(source != NULL && self != NULL && sim != NULL);
+void LineObject_update(SimulateEvent* event, RedStoneSimulator* sim) {
+    assert(event != NULL && sim != NULL);
+
+    LineObject* self = (LineObject*)event->target_object;
+    ConnectiveObject* source = event->source_object;
+    uint8_t power = event->power;
+    PowerType type = event->type;
+
     if (self->power_map == NULL) return;
 
-    // power if (source->is_lossless) else max(0, power - 1)
-    uint8_t final_power = source->is_lossless ? power : (power > 0 ? power - 1 : 0);
+    uint8_t final_power = 0;
+
+    // LineObject本身是弱能量可穿透传递的 而且不接受不可穿透传递的能量
+    // 只有非弱信号，或者可透传的弱信号，才能进入正常的能量衰减计算
+    // 否则能量就是0
+    if (!(type == POWER_WEAK && !source->is_weak_transmissible)) {
+        // power if (source->is_lossless) else max(0, power - 1)
+        final_power = source->is_lossless ? power : (power > 0 ? power - 1 : 0);
+    }
 
     bool find_source = false;
     for (uint32_t i = 0; i < self->power_map_count; i++) {
         if (self->power_map[i].source == source) {
             self->power_map[i].power = final_power;
+            self->power_map[i].type = type;
             find_source = true;
         }
     }
@@ -231,6 +263,7 @@ void LineObject_update(LineObject* self, ConnectiveObject* source, uint8_t power
         if (self->power_map_count < self->power_map_capacity) {
             self->power_map[self->power_map_count].source = source;
             self->power_map[self->power_map_count].power = final_power;
+            self->power_map[self->power_map_count].type = type;
             self->power_map_count++;
         }
         else {
@@ -255,6 +288,7 @@ void LineObject_update(LineObject* self, ConnectiveObject* source, uint8_t power
             if (empty_index != -1) {
                 self->power_map[empty_index].source = source;
                 self->power_map[empty_index].power = final_power;
+                self->power_map[empty_index].type = type;
             }
             else {
                 // 没有空位？？？基本不可能啊，在limit内不可能没有空位啊
@@ -268,29 +302,42 @@ void LineObject_update(LineObject* self, ConnectiveObject* source, uint8_t power
     if (next_power != self->base.power) {
         self->base.power = next_power;
         // 调用通用update（这个update会把自己能量传给其他人）
-        SUPER_UPDATE(self, source, sim);
+        SUPER_BROADCAST(self, source, self->base.power, POWER_WEAK, sim);
     }
 }
 
 void SourceObject_start(SourceObject* self, RedStoneSimulator* sim) {
-    SUPER_UPDATE(self, NULL, sim);
+    SUPER_BROADCAST(self, NULL, self->base.power, POWER_STRONG, sim);
 }
 
-void SourceObject_update() {
+void SourceObject_update(SimulateEvent* event, RedStoneSimulator* sim) {
     // JUST DO NOTHING~
+    UNUSED(event);
+    UNUSED(sim);
     return;
 }
 
-void SlotObject_update(SlotObject* self, ConnectiveObject* source, uint8_t power, RedStoneSimulator* sim) {
-    assert(self != NULL && sim != NULL);
+void SlotObject_update(SimulateEvent* event, RedStoneSimulator* sim) {
+    assert(event != NULL && sim != NULL);
+
+    SlotObject* self = (SlotObject*)event->target_object;
+    ConnectiveObject* source = event->source_object;
+    uint8_t power = event->power;
+    PowerType type = event->type;
+
+    assert(self != NULL);
 
     self->base.power = power;
+    // SlotObject不进行裁决，输入event决定slot的type
+    // 所以SlotObject限制limit为2，但是init里面仍然是可以填limit的，因为子类可以引入裁决系统
+    self->source_power_type = type;
 
+    // 该简单集束接口不做任何裁决
     // 单向集束接口特性，就是如果传进来信号，只转发给parent;如果是parent给的信号就发给其他人
     if (source == self->parent) {
-        SUPER_UPDATE(self, source, sim);
+        SUPER_BROADCAST(self, source, self->base.power, self->source_power_type, sim);
     }
     else {
-        simulator_append_deque(sim, self->parent, (ConnectiveObject*)self, self->base.power);
+        simulator_append_deque(sim, self->parent, (ConnectiveObject*)self, self->base.power, type);
     }
 }

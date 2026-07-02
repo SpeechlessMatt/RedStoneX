@@ -4,6 +4,17 @@
 
 #include <stdio.h>
 
+#define BIND_ARRAY_TO_SIMULATOR(sim, arr, count) \
+    for (uint32_t i = 0; i < (count); i++) {      \
+        simulator_bind_object((sim), (ConnectiveObject*)(arr)[i]); \
+    }
+
+void connect_line_chain(LineObject** line_arr, uint32_t count) {
+    for (uint32_t i = 0; i < count - 1; i++) {
+        connect_objects((ConnectiveObject*)line_arr[i], (ConnectiveObject*)line_arr[i + 1]);
+    }
+}
+
 int main() {
     printf("Start Simulate! \n");
     RedStoneSimulator* sim = create_simulator();
@@ -12,127 +23,71 @@ int main() {
         return -1;
     }
 
-    SourceObject* lever = create_source_object(1, 4, 10);
-    LineObject* wireA = create_line_object(2, 4);
-    LineObject* wireB = create_line_object(3, 4);
-    LineObject* wireC = create_line_object(4, 4);
-    LineObject* wireD = create_line_object(5, 4);
-    LineObject* wireE = create_line_object(6, 4);
-    LineObject* wireF = create_line_object(7, 4);
-    LineObject* wireG = create_line_object(8, 4);
+    // 以下测试代码来自Gemini，我懒得写了
+    // 我给他下的指令是基于我之前写的测试代码给我写个优化的版本
+    // 然后改成Line1连接拉杆和方块，Line2连接方块，Line3连接中继器，中继器连接方块
+    // 然后就给我生成了对应的测试代码，测试成功！
+    uint32_t global_id = 1;
 
-    RelaySource* relay_source = create_relay_source(9, 10, 1, 1);
-    LineObject* wireH = create_line_object(10, 4);
-    LineObject* wireI = create_line_object(11, 4);
-    LineObject* wireJ = create_line_object(12, 4);
-    LineObject* wireK = create_line_object(13, 4);
-    LineObject* wireL = create_line_object(14, 4);
-    LineObject* wireM = create_line_object(15, 4);
+    SourceObject* lever = create_source_object(global_id++, 4, 10);
+    ConnectiveObject* solid_block = create_solid_block(global_id++, 10);
+    RelaySource* relay_source = create_relay_source(global_id++, 10, 1);
 
-    connect_objects((ConnectiveObject*)lever, (ConnectiveObject*)wireA);
-    connect_objects((ConnectiveObject*)wireA, (ConnectiveObject*)wireB);
-    connect_objects((ConnectiveObject*)wireB, (ConnectiveObject*)wireC);
-    connect_objects((ConnectiveObject*)wireC, (ConnectiveObject*)wireD);
-    connect_objects((ConnectiveObject*)wireD, (ConnectiveObject*)wireE);
-    connect_objects((ConnectiveObject*)wireE, (ConnectiveObject*)wireF);
-    connect_objects((ConnectiveObject*)wireF, (ConnectiveObject*)wireG);
-    connect_objects((ConnectiveObject*)wireG, (ConnectiveObject*)&relay_source->input_slot);
+    #define LINE_1_SIZE 5
+    #define LINE_2_SIZE 3
+    #define LINE_3_SIZE 4
 
-    connect_objects((ConnectiveObject*)&relay_source->output_slot, (ConnectiveObject*)wireH);
-    connect_objects((ConnectiveObject*)wireH, (ConnectiveObject*)wireI);
-    connect_objects((ConnectiveObject*)wireI, (ConnectiveObject*)wireJ);
-    connect_objects((ConnectiveObject*)wireJ, (ConnectiveObject*)wireK);
-    connect_objects((ConnectiveObject*)wireK, (ConnectiveObject*)wireL);
-    connect_objects((ConnectiveObject*)wireL, (ConnectiveObject*)wireM);
+    LineObject* line1[LINE_1_SIZE];
+    for (int i = 0; i < LINE_1_SIZE; i++) line1[i] = create_line_object(global_id++, 4);
+
+    LineObject* line2[LINE_2_SIZE];
+    for (int i = 0; i < LINE_2_SIZE; i++) line2[i] = create_line_object(global_id++, 4);
+
+    LineObject* line3[LINE_3_SIZE];
+    for (int i = 0; i < LINE_3_SIZE; i++) line3[i] = create_line_object(global_id++, 4);
+
+    connect_line_chain(line1, LINE_1_SIZE);
+    connect_line_chain(line2, LINE_2_SIZE);
+    connect_line_chain(line3, LINE_3_SIZE);
+
+    connect_objects((ConnectiveObject*)lever, (ConnectiveObject*)line1[0]);
+    connect_objects((ConnectiveObject*)line1[LINE_1_SIZE - 1], solid_block);
+
+    connect_objects((ConnectiveObject*)line2[0], solid_block);
+
+    connect_objects(solid_block, (ConnectiveObject*)&relay_source->input_slot);
+    connect_objects((ConnectiveObject*)&relay_source->output_slot, (ConnectiveObject*)line3[0]);
 
     simulator_bind_object(sim, (ConnectiveObject*)lever);
-    simulator_bind_object(sim, (ConnectiveObject*)wireA);
-    simulator_bind_object(sim, (ConnectiveObject*)wireB);
-    simulator_bind_object(sim, (ConnectiveObject*)wireC);
-    simulator_bind_object(sim, (ConnectiveObject*)wireD);
-    simulator_bind_object(sim, (ConnectiveObject*)wireE);
-    simulator_bind_object(sim, (ConnectiveObject*)wireF);
-    simulator_bind_object(sim, (ConnectiveObject*)wireG);
-
-    simulator_bind_object(sim, (ConnectiveObject*)relay_source);
-    simulator_bind_object(sim, (ConnectiveObject*)wireH);
-    simulator_bind_object(sim, (ConnectiveObject*)wireI);
-    simulator_bind_object(sim, (ConnectiveObject*)wireJ);
-    simulator_bind_object(sim, (ConnectiveObject*)wireK);
-    simulator_bind_object(sim, (ConnectiveObject*)wireL);
-    simulator_bind_object(sim, (ConnectiveObject*)wireM);
+    simulator_bind_object(sim, solid_block);
+    
+    BIND_ARRAY_TO_SIMULATOR(sim, line1, LINE_1_SIZE);
+    BIND_ARRAY_TO_SIMULATOR(sim, line2, LINE_2_SIZE);
+    BIND_ARRAY_TO_SIMULATOR(sim, line3, LINE_3_SIZE);
 
     simulator_add_tick_breakpoint(sim, 1);
     simulator_add_tick_breakpoint(sim, 2);
 
     simulator_run(sim);
 
-    printf("[lever]Power: %d\n", lever->base.power);
-    printf("[wireA]Power: %d\n", wireA->base.power);
-    printf("[wireB]Power: %d\n", wireB->base.power);
-    printf("[wireC]Power: %d\n", wireC->base.power);
-    printf("[wireD]Power: %d\n", wireD->base.power);
-    printf("[wireE]Power: %d\n", wireE->base.power);
-    printf("[wireF]Power: %d\n", wireF->base.power);
-    printf("[wireG]Power: %d\n", wireG->base.power);
+    #define PRINT_STATUS(title)                                                         \
+        printf("\n========== " title " ==========\n");                              \
+        printf("[lever]Power: %d\n", lever->base.power);                             \
+        for(int i=0; i<LINE_1_SIZE; i++) printf("[Line1_%d]Power: %d\n", i, line1[i]->base.power); \
+        for(int i=0; i<LINE_2_SIZE; i++) printf("[Line2_%d]Power: %d\n", i, line2[i]->base.power); \
+        printf("[SolidBlock]Power: %d\n", solid_block->power);                      \
+        printf("[RelaySource]Power: %d\n", relay_source->base.base.power);          \
+        for(int i=0; i<LINE_3_SIZE; i++) printf("[Line3_%d]Power: %d\n", i, line3[i]->base.power);
 
-    printf("[relay_source]Power: %d\n", relay_source->base.base.power);
-    printf("[wireH]Power: %d\n", wireH->base.power);
-    printf("[wireI]Power: %d\n", wireI->base.power);
-    printf("[wireJ]Power: %d\n", wireJ->base.power);
-    printf("[wireK]Power: %d\n", wireK->base.power);
-    printf("[wireL]Power: %d\n", wireL->base.power);
-    printf("[wireM]Power: %d\n", wireM->base.power);
+    PRINT_STATUS("Tick Breakpoint: 1")
 
     simulator_resume(sim);
 
-    printf("[lever]Power: %d\n", lever->base.power);
-    printf("[wireA]Power: %d\n", wireA->base.power);
-    printf("[wireB]Power: %d\n", wireB->base.power);
-    printf("[wireC]Power: %d\n", wireC->base.power);
-    printf("[wireD]Power: %d\n", wireD->base.power);
-    printf("[wireE]Power: %d\n", wireE->base.power);
-    printf("[wireF]Power: %d\n", wireF->base.power);
-    printf("[wireG]Power: %d\n", wireG->base.power);
-
-    printf("[relay_source]Power: %d\n", relay_source->base.base.power);
-    printf("[wireH]Power: %d\n", wireH->base.power);
-    printf("[wireI]Power: %d\n", wireI->base.power);
-    printf("[wireJ]Power: %d\n", wireJ->base.power);
-    printf("[wireK]Power: %d\n", wireK->base.power);
-    printf("[wireL]Power: %d\n", wireL->base.power);
-    printf("[wireM]Power: %d\n", wireM->base.power);
+    PRINT_STATUS("Tick Breakpoint: 2")
 
     simulator_resume(sim);
 
-    printf("[lever]Power: %d\n", lever->base.power);
-    printf("[wireA]Power: %d\n", wireA->base.power);
-    printf("[wireB]Power: %d\n", wireB->base.power);
-    printf("[wireC]Power: %d\n", wireC->base.power);
-    printf("[wireD]Power: %d\n", wireD->base.power);
-    printf("[wireE]Power: %d\n", wireE->base.power);
-    printf("[wireF]Power: %d\n", wireF->base.power);
-    printf("[wireG]Power: %d\n", wireG->base.power);
+    PRINT_STATUS("FINISH 电路已然停止")
 
-    printf("[relay_source]Power: %d\n", relay_source->base.base.power);
-    printf("[wireH]Power: %d\n", wireH->base.power);
-    printf("[wireI]Power: %d\n", wireI->base.power);
-    printf("[wireJ]Power: %d\n", wireJ->base.power);
-    printf("[wireK]Power: %d\n", wireK->base.power);
-    printf("[wireL]Power: %d\n", wireL->base.power);
-    printf("[wireM]Power: %d\n", wireM->base.power);
-
-    // uint32_t empty_streak = 0;
-    // bool running = true;
-    // while (running) {
-    //     uint32_t current_tick = sim->current_tick;
-    //
-    //     running = simulator_step(sim, &empty_streak);
-    //     printf("[Tick: %d] --------------------------\n", current_tick);
-    //     printf("      [lever]Power: %d\n", lever->base.power);
-    //     printf("      [wireA]Power: %d\n", wireA->base.power);
-    //     printf("      [wireB]Power: %d\n", wireB->base.power);
-    //     printf("      [wireC]Power: %d\n", wireC->base.power);
-    //     printf("      [wireD]Power: %d\n", wireD->base.power);
-    // }
+    return 0;
 }

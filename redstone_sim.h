@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 #include "redstone_obj.h"
+#include "redstone_types.h"
 
 typedef struct RedStoneSimulator RedStoneSimulator;
 typedef struct SimulateEvent SimulateEvent;
@@ -14,6 +15,7 @@ struct SimulateEvent {
     ConnectiveObject* target_object;
     ConnectiveObject* source_object;
     uint8_t power;
+    PowerType type;
 };
 
 struct SimulateDeque{
@@ -47,7 +49,7 @@ struct RedStoneSimulator {
 #endif
 };
 
-void simulator_append_deque(RedStoneSimulator* sim, ConnectiveObject* target, ConnectiveObject* from, uint8_t power);
+void simulator_append_deque(RedStoneSimulator* sim, ConnectiveObject* target, ConnectiveObject* from, uint8_t power, PowerType type);
 void simulator_schedule_source(RedStoneSimulator* sim, ConnectiveObject* source, uint32_t delay);
 
 RedStoneSimulator* create_simulator();
