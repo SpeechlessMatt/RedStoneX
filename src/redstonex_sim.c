@@ -195,6 +195,8 @@ void rsx_simulator_append_deque(RSXSimulator* sim, RSXConnectiveObject* target, 
     }
 }
 
+// TODO:
+// 历史遗留问题，为啥不做成RSXSourceObject呢？
 void rsx_simulator_schedule_source(RSXSimulator* sim, RSXConnectiveObject* source, uint32_t delay) {
     assert(sim != NULL);
     if (source == NULL) return;
