@@ -1,4 +1,5 @@
-test_redstone
+test_redstonex
+libredstonex.so
 *.o
 *.out
 *.exe

@@ -1,6 +1,6 @@
-#include "redstone_components.h"
-#include "redstone_obj.h"
-#include "redstone_sim.h"
+#include "redstonex_components.h"
+#include "redstonex_obj.h"
+#include "redstonex_sim.h"
 
 #include <stdio.h>
 

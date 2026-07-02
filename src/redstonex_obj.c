@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "redstone_obj.h"
-#include "redstone_common.h"
-#include "redstone_sim.h"
-#include "redstone_types.h"
+#include "redstonex_obj.h"
+#include "redstonex_common.h"
+#include "redstonex_sim.h"
+#include "redstonex_types.h"
 
 bool init_object(ConnectiveObject* obj, uint32_t id, ObjectRole role, const char* uri, uint8_t power, uint32_t limit, bool is_lossless, bool is_weak_transmissible) {
     assert(obj != NULL);

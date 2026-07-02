@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "redstone_obj.h"
+#include "redstonex_obj.h"
 
 #define URI_RELAY_SOURCE "redstonex:relay_source"
 #define URI_SOLID_BLOCK "redstonex:solid_block"

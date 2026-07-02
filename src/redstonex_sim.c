@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "redstone_sim.h"
-#include "redstone_common.h"
-#include "redstone_obj.h"
-#include "redstone_types.h"
+#include "redstonex_sim.h"
+#include "redstonex_common.h"
+#include "redstonex_obj.h"
+#include "redstonex_types.h"
 
 SimulateDeque* create_sim_deque(uint32_t capacity) {
     SimulateDeque* q = (SimulateDeque*)malloc(sizeof(SimulateDeque));

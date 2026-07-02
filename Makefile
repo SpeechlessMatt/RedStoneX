@@ -1,16 +1,21 @@
 CC = clang
-CFLAGS = -O3 -Wall -Iinclude
+CFLAGS = -O3 -Wall -Wextra -Iinclude -fPIC
 
-SRCS = src/redstone_sim.c src/redstone_obj.c src/redstone_components.c
+SRCS = src/redstonex_sim.c src/redstonex_obj.c src/redstonex_components.c
 OBJS = $(SRCS:.c=.o)
 
-all: test_redstone
+LIB_NAME = libredstonex.so
 
-test_redstone: tests/test.c $(OBJS)
+all: test_redstonex $(LIB_NAME)
+
+test_redstonex: tests/test.c $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
+
+$(LIB_NAME): $(OBJS)
+	$(CC) -shared $^ -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f src/*.o test_redstone
+	rm -f src/*.o test_redstonex $(LIB_NAME)

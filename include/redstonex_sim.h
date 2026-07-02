@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "redstone_obj.h"
-#include "redstone_types.h"
+#include "redstonex_obj.h"
+#include "redstonex_types.h"
 
 typedef struct RedStoneSimulator RedStoneSimulator;
 typedef struct SimulateEvent SimulateEvent;

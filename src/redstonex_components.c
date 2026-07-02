@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "redstone_components.h"
-#include "redstone_obj.h"
-#include "redstone_sim.h"
-#include "redstone_types.h"
+#include "redstonex_components.h"
+#include "redstonex_obj.h"
+#include "redstonex_sim.h"
+#include "redstonex_types.h"
 
 #define ID_ROLE_MAIN   (0x00000000)
 #define ID_ROLE_INPUT  (0x10000000)

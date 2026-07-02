@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "redstone_types.h"
+#include "redstonex_types.h"
 
 #define SUPER_BROADCAST(self, source, power, type, sim) ConnectiveObject_broadcast((ConnectiveObject*)self, source, power, type, sim)
 
