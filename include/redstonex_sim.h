@@ -70,7 +70,7 @@ struct RSXSimulator {
     RSXLogCallback log_cb;
     void* log_user_data;
 
-#ifndef NDEBUG
+#ifndef RSX_DISABLE_BREAKPOINT
     bool is_paused;
     uint32_t* tick_breakpoints;
     uint32_t tick_breakpoint_count;
@@ -87,7 +87,7 @@ void rsx_simulator_bind_object(RSXSimulator* sim, RSXConnectiveObject* obj);
 void rsx_simulator_run(RSXSimulator* sim);
 void rsx_simulator_resume(RSXSimulator* sim);
 
-#ifndef NDEBUG
+#ifndef RSX_DISABLE_BREAKPOINT
 void rsx_simulator_add_tick_breakpoint(RSXSimulator* sim, uint32_t tick);
 void rsx_simulator_remove_tick_breakpoint(RSXSimulator* sim, uint32_t tick);
 bool rsx_simulator_step(RSXSimulator* sim);

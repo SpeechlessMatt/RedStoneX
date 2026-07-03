@@ -106,7 +106,7 @@ RSXSimulator* rsx_create_simulator() {
     sim->log_cb = NULL;
     sim->log_user_data = NULL;
 
-#ifndef NDEBUG
+#ifndef RSX_DISABLE_BREAKPOINT
     sim->tick_breakpoint_count = 0;
     sim->tick_breakpoint_capacity = 20;
     sim->tick_breakpoints = (uint32_t*)malloc(sim->tick_breakpoint_capacity * sizeof(uint32_t));
@@ -127,7 +127,7 @@ void rsx_destroy_simulator(RSXSimulator* sim) {
     free(sim->simulate_deque);
     free(sim->all_objects);
 
-#ifndef NDEBUG
+#ifndef RSX_DISABLE_BREAKPOINT
     free(sim->tick_breakpoints);
 #endif
 
@@ -263,7 +263,7 @@ static inline void rsx_simulator_process_deque(RSXSimulator* sim) {
     }
 }
 
-#ifndef NDEBUG
+#ifndef RSX_DISABLE_BREAKPOINT
 static inline void rsx_simulator_ensure_tick_breakpoint_capacity(RSXSimulator* sim, uint32_t required_capacity) {
     if (sim->tick_breakpoint_capacity >= required_capacity) return;
 
@@ -343,7 +343,7 @@ bool rsx_simulator_step(RSXSimulator* sim) {
         return false; 
     }
 
-#ifndef NDEBUG
+#ifndef RSX_DISABLE_BREAKPOINT
     for (uint32_t i = 0; i < sim->tick_breakpoint_count; i++) {
         if (sim->tick_breakpoints[i] == sim->current_tick) {
             sim->is_paused = true;
@@ -359,7 +359,7 @@ bool rsx_simulator_step(RSXSimulator* sim) {
     return true;
 }
 
-#ifndef NDEBUG
+#ifndef RSX_DISABLE_BREAKPOINT
 void rsx_simulator_pause(RSXSimulator* sim) {
     assert(sim != NULL);
 
@@ -371,12 +371,12 @@ void rsx_simulator_pause(RSXSimulator* sim) {
 void rsx_simulator_resume(RSXSimulator* sim) {
     assert(sim != NULL);
 
-#ifndef NDEBUG
+#ifndef RSX_DISABLE_BREAKPOINT
     if (!sim->is_paused) return;
 #endif
     if (!sim->is_running) {
         rsx_log(sim, RSX_LOG_INFO, "Resume from Tick %d ...\n", sim->current_tick);
-#ifndef NDEBUG
+#ifndef RSX_DISABLE_BREAKPOINT
         sim->is_paused = false;
 #endif
         rsx_simulator_run(sim);
