@@ -1,4 +1,5 @@
 test_redstonex
+compile_command.json
 libredstonex.so
 *.o
 *.out
