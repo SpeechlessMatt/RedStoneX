@@ -11,6 +11,15 @@ typedef struct RSXSimulator RSXSimulator;
 typedef struct RSXSimulateEvent RSXSimulateEvent;
 typedef struct RSXSimulateDeque RSXSimulateDeque;
 
+typedef enum {
+    RSX_LOG_DEBUG = 0,
+    RSX_LOG_INFO,
+    RSX_LOG_WARN,
+    RSX_LOG_ERROR
+} RSXLogLevel;
+
+typedef void (*RSXLogCallback)(RSXLogLevel level, const char* message, void* user_data);
+
 struct RSXSimulateEvent {
     RSXConnectiveObject* target_object;
     RSXConnectiveObject* source_object;
@@ -41,6 +50,9 @@ struct RSXSimulator {
     uint32_t empty_streak;
     bool is_running;
 
+    RSXLogCallback log_cb;
+    void* log_user_data;
+
 #ifndef NDEBUG
     bool is_paused;
     uint32_t* tick_breakpoints;
@@ -53,6 +65,7 @@ void rsx_simulator_append_deque(RSXSimulator* sim, RSXConnectiveObject* target, 
 void rsx_simulator_schedule_source(RSXSimulator* sim, RSXConnectiveObject* source, uint32_t delay);
 
 RSXSimulator* rsx_create_simulator();
+void rsx_simulator_set_log_callback(RSXSimulator* sim, RSXLogCallback cb, void* user_data);
 void rsx_simulator_bind_object(RSXSimulator* sim, RSXConnectiveObject* obj);
 void rsx_simulator_run(RSXSimulator* sim);
 void rsx_simulator_resume(RSXSimulator* sim);

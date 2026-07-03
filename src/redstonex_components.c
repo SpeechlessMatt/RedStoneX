@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <sys/types.h>
+#include <string.h>
 
 #include "redstonex_components.h"
 #include "redstonex_obj.h"
@@ -40,11 +40,11 @@ bool rsx_init_relay_source(RSXRelaySource* relay_source, uint32_t id, const char
 
     // 子类的id和父类的不一样 通过位运算让16进制最高位为1或者2
     // 中继器使用普通接口，也就是说实际上不裁决信号类型而且限制为2，即一个接口只能接一个其他设备
-    if (!rsx_init_slot_object(&relay_source->input_slot, id | ID_ROLE_INPUT, RSX_URI_SLOT, 2, (RSXConnectiveObject*)relay_source, POWER_NONE)) {
+    if (!rsx_init_slot_object(&relay_source->input_slot, id | ID_ROLE_INPUT, RSX_URI_SLOT, 2, (RSXConnectiveObject*)relay_source, RSX_POWER_NONE)) {
         free(relay_source->base.base.connect_set);
         return false;
     }
-    if (!rsx_init_slot_object(&relay_source->output_slot, id | ID_ROLE_OUTPUT, RSX_URI_SLOT, 2, (RSXConnectiveObject*)relay_source, POWER_NONE)) {
+    if (!rsx_init_slot_object(&relay_source->output_slot, id | ID_ROLE_OUTPUT, RSX_URI_SLOT, 2, (RSXConnectiveObject*)relay_source, RSX_POWER_NONE)) {
         free(relay_source->base.base.connect_set);
         return false;
     }
@@ -71,9 +71,8 @@ bool rsx_init_comparator_source(RSXComparatorSource* comparator_source, uint32_t
         return false;
     }
 
-    // TODO
-    comparator_source->base.base.on_update_cb = NULL;
-    comparator_source->base.on_start_cb = NULL;
+    comparator_source->base.base.on_update_cb = RSXComparatorSource_update;
+    comparator_source->base.on_start_cb = RSXComparatorSource_start;
 
     comparator_source->delay = delay;
     comparator_source->mode = COMPARISON_MODE;
@@ -84,22 +83,22 @@ bool rsx_init_comparator_source(RSXComparatorSource* comparator_source, uint32_t
         return false;
     }
 
-    if (!rsx_init_slot_object(&comparator_source->input_slot, id | ID_ROLE_INPUT, RSX_URI_SLOT, 2, (RSXConnectiveObject*)comparator_source, POWER_NONE)) {
+    if (!rsx_init_slot_object(&comparator_source->input_slot, id | ID_ROLE_INPUT, RSX_URI_SLOT, 2, (RSXConnectiveObject*)comparator_source, RSX_POWER_NONE)) {
         free(comparator_source->power_map);
         free(comparator_source->base.base.connect_set);
         return false;
     }
-    if (!rsx_init_slot_object(&comparator_source->calculate_slot_a, id | ID_ROLE_CALCULATE_A, RSX_URI_SLOT, 2, (RSXConnectiveObject*)comparator_source, POWER_NONE)) {
+    if (!rsx_init_slot_object(&comparator_source->calculate_slot_a, id | ID_ROLE_CALCULATE_A, RSX_URI_SLOT, 2, (RSXConnectiveObject*)comparator_source, RSX_POWER_NONE)) {
         free(comparator_source->power_map);
         free(comparator_source->base.base.connect_set);
         return false;
     }
-    if (!rsx_init_slot_object(&comparator_source->calculate_slot_b, id | ID_ROLE_CALCULATE_B, RSX_URI_SLOT, 2, (RSXConnectiveObject*)comparator_source, POWER_NONE)) {
+    if (!rsx_init_slot_object(&comparator_source->calculate_slot_b, id | ID_ROLE_CALCULATE_B, RSX_URI_SLOT, 2, (RSXConnectiveObject*)comparator_source, RSX_POWER_NONE)) {
         free(comparator_source->power_map);
         free(comparator_source->base.base.connect_set);
         return false;
     }
-    if (!rsx_init_slot_object(&comparator_source->output_slot, id | ID_ROLE_OUTPUT, RSX_URI_SLOT, 2, (RSXConnectiveObject*)comparator_source, POWER_NONE)) {
+    if (!rsx_init_slot_object(&comparator_source->output_slot, id | ID_ROLE_OUTPUT, RSX_URI_SLOT, 2, (RSXConnectiveObject*)comparator_source, RSX_POWER_NONE)) {
         free(comparator_source->power_map);
         free(comparator_source->base.base.connect_set);
         return false;
@@ -107,15 +106,15 @@ bool rsx_init_comparator_source(RSXComparatorSource* comparator_source, uint32_t
 
     comparator_source->power_map[SLOT_INPUT].source = (RSXConnectiveObject*)&comparator_source->input_slot;
     comparator_source->power_map[SLOT_INPUT].power = 0;
-    comparator_source->power_map[SLOT_INPUT].type = POWER_NONE;
+    comparator_source->power_map[SLOT_INPUT].type = RSX_POWER_NONE;
 
     comparator_source->power_map[SLOT_CALCULATE_A].source = (RSXConnectiveObject*)&comparator_source->calculate_slot_a;
     comparator_source->power_map[SLOT_CALCULATE_A].power = 0;
-    comparator_source->power_map[SLOT_CALCULATE_A].type = POWER_NONE;
+    comparator_source->power_map[SLOT_CALCULATE_A].type = RSX_POWER_NONE;
 
     comparator_source->power_map[SLOT_CALCULATE_B].source = (RSXConnectiveObject*)&comparator_source->calculate_slot_b;
     comparator_source->power_map[SLOT_CALCULATE_B].power = 0;
-    comparator_source->power_map[SLOT_CALCULATE_B].type = POWER_NONE;
+    comparator_source->power_map[SLOT_CALCULATE_B].type = RSX_POWER_NONE;
 
     return true;
 }
@@ -144,11 +143,11 @@ bool rsx_init_torch_source(RSXTorchSource* torch_source, uint32_t id, const char
     torch_source->torch_power = power;
     torch_source->delay = delay;
 
-    if (!rsx_init_slot_object(&torch_source->bottom_slot, id | ID_ROLE_INPUT, RSX_URI_SLOT, 2, (RSXConnectiveObject*)torch_source, POWER_NONE)) {
+    if (!rsx_init_slot_object(&torch_source->bottom_slot, id | ID_ROLE_INPUT, RSX_URI_SLOT, 2, (RSXConnectiveObject*)torch_source, RSX_POWER_NONE)) {
         free(torch_source->base.base.connect_set);
         return false;
     }
-    if (!rsx_init_slot_object(&torch_source->power_slot, id | ID_ROLE_OUTPUT, RSX_URI_SLOT, 2, (RSXConnectiveObject*)torch_source, POWER_NONE)) {
+    if (!rsx_init_slot_object(&torch_source->power_slot, id | ID_ROLE_OUTPUT, RSX_URI_SLOT, 2, (RSXConnectiveObject*)torch_source, RSX_POWER_NONE)) {
         free(torch_source->base.base.connect_set);
         return false;
     }
@@ -168,21 +167,25 @@ RSXTorchSource* rsx_create_torch_source(uint32_t id, uint8_t power, uint32_t del
     return torch_source;
 }
 
-bool rsx_init_solid_block(RSXConnectiveObject* block, uint32_t id, const char* uri, uint32_t limit) {
+bool rsx_init_block(RSXBlock* block, uint32_t id, const char* uri, uint32_t limit) {
     assert(block != NULL);
 
-    if (!rsx_init_object(block, id, ROLE_OBJECT, uri, 0, limit, true, false)) {
+    if (!rsx_init_line_object(&block->base, id, uri, limit, true, false)) {
         return false;
     }
+    block->base.base.on_update_cb = Block_update;
+
+    // 清零一下数组
+    memset(block->max_power, 0, sizeof(block->max_power));
 
     return true;
 }
 
-RSXConnectiveObject* rsx_create_solid_block(uint32_t id, uint32_t limit) {
-    RSXConnectiveObject* block = (RSXConnectiveObject*)malloc(sizeof(RSXConnectiveObject));
+RSXBlock* rsx_create_block(uint32_t id, uint32_t limit) {
+    RSXBlock* block = (RSXBlock*)malloc(sizeof(RSXBlock));
     if (block == NULL) return NULL;
 
-    if (!rsx_init_solid_block(block, id, RSX_URI_SOLID_BLOCK, limit)) {
+    if (!rsx_init_block(block, id, RSX_URI_SOLID_BLOCK, limit)) {
         free(block);
         return NULL;
     }
@@ -194,7 +197,7 @@ void RSXRelaySource_start(RSXSourceObject* base_src, RSXSimulator* sim) {
     assert(sim != NULL && base_src != NULL);
     
     RSXRelaySource* self = (RSXRelaySource*)base_src;
-    rsx_simulator_append_deque(sim, (RSXConnectiveObject*)&self->output_slot, (RSXConnectiveObject*)self, self->base.base.power, POWER_STRONG);
+    rsx_simulator_append_deque(sim, (RSXConnectiveObject*)&self->output_slot, (RSXConnectiveObject*)self, self->base.base.power, RSX_POWER_STRONG);
 }
 
 void RSXRelaySource_update(RSXSimulateEvent* event, RSXSimulator* sim) {
@@ -233,8 +236,8 @@ void RSXRelaySource_connect_output(RSXRelaySource* self, RSXConnectiveObject* ta
 void RSXComparatorSource_start(RSXSourceObject* base_src, RSXSimulator* sim) {
     assert(sim != NULL && base_src != NULL);
     
-    RSXRelaySource* self = (RSXRelaySource*)base_src;
-    rsx_simulator_append_deque(sim, (RSXConnectiveObject*)&self->output_slot, (RSXConnectiveObject*)self, self->base.base.power, POWER_STRONG);
+    RSXComparatorSource* self = (RSXComparatorSource*)base_src;
+    rsx_simulator_append_deque(sim, (RSXConnectiveObject*)&self->output_slot, (RSXConnectiveObject*)self, self->base.base.power, RSX_POWER_STRONG);
 }
 
 void RSXComparatorSource_update(RSXSimulateEvent* event, RSXSimulator* sim) {
@@ -283,7 +286,7 @@ void RSXTorchSource_start(RSXSourceObject* base_src, RSXSimulator* sim) {
     assert(sim != NULL && base_src != NULL);
     
     RSXTorchSource* self = (RSXTorchSource*)base_src;
-    rsx_simulator_append_deque(sim, (RSXConnectiveObject*)&self->power_slot, (RSXConnectiveObject*)self, self->base.base.power, POWER_STRONG);
+    rsx_simulator_append_deque(sim, (RSXConnectiveObject*)&self->power_slot, (RSXConnectiveObject*)self, self->base.base.power, RSX_POWER_STRONG);
 }
 
 void RSXTorchSource_update(RSXSimulateEvent* event, RSXSimulator* sim) {
@@ -304,5 +307,32 @@ void RSXTorchSource_update(RSXSimulateEvent* event, RSXSimulator* sim) {
     if (self->base.base.power != new_power) {
         self->base.base.power = new_power;
         rsx_simulator_schedule_source(sim, (RSXConnectiveObject*)self, self->delay);
+    }
+}
+
+void Block_update(RSXSimulateEvent* event, RSXSimulator* sim) {
+    assert(event != NULL && sim != NULL);
+    
+    RSXBlock* self = (RSXBlock*)event->target_object;
+    RSXConnectiveObject* source = event->source_object;
+    uint8_t power = event->power;
+    RSXPowerType type = event->type;
+
+    // 无视前者是否无损，能量和前者一致的
+    RSXLineObject_update_map(&self->base, source, power, type);
+
+    uint8_t max_power = 0;
+    for (uint32_t i = 0; i < self->base.power_map_count; i++) {
+        if (self->base.power_map[i].type != type) continue;
+
+        if (self->base.power_map[i].power > max_power) {
+            max_power = self->base.power_map[i].power;
+        }
+    }
+
+    // 多嘴一句，现在这个体系里面，方块本身是不充能的哈
+    if (max_power != self->max_power[type]) {
+        self->max_power[type] = max_power;
+        RSX_SUPER_BROADCAST(self, source, max_power, type, sim);
     }
 }

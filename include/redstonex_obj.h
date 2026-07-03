@@ -6,7 +6,8 @@
 
 #include "redstonex_types.h"
 
-#define RSX_SUPER_BROADCAST(self, source, power, type, sim) RSXConnectiveObject_broadcast((RSXConnectiveObject*)self, source, power, type, sim)
+#define RSX_SUPER_BROADCAST(self, source, power, type, sim) \
+    RSXConnectiveObject_broadcast((RSXConnectiveObject*)(self), (source), (power), (type), (sim))
 
 #define RSX_URI_OBJECT "redstonex:object"
 #define RSX_URI_SOURCE "redstonex:source"
@@ -71,7 +72,7 @@ bool rsx_init_object(RSXConnectiveObject* obj, uint32_t id, RSXObjectRole role, 
 RSXConnectiveObject* rsx_create_object(uint32_t id, RSXObjectRole role, uint32_t limit, bool is_lossless, bool is_weak_transmissible);
 void rsx_destroy_object(RSXConnectiveObject* obj);
 
-bool rsx_init_line_object(RSXLineObject* line, uint32_t id, const char* uri, uint32_t limit);
+bool rsx_init_line_object(RSXLineObject* line, uint32_t id, const char* uri, uint32_t limit, bool is_lossless, bool is_weak_transmissible);
 RSXLineObject* rsx_create_line_object(uint32_t id, uint32_t limit);
 
 bool rsx_init_source_object(RSXSourceObject* source, uint32_t id, const char* uri, uint32_t limit, uint8_t power, uint32_t max_delay);
@@ -88,7 +89,9 @@ void RSXLineObject_update(RSXSimulateEvent* event, RSXSimulator* sim);
 void RSXSourceObject_update(RSXSimulateEvent* event, RSXSimulator* sim);
 void RSXSlotObject_update(RSXSimulateEvent* event, RSXSimulator* sim);
 
+void RSXConnectiveObject_broadcast(RSXConnectiveObject* self, RSXConnectiveObject* source, uint8_t power, RSXPowerType type, RSXSimulator* sim);
 void RSXSourceObject_start(RSXSourceObject* self, RSXSimulator* sim);
+void RSXLineObject_update_map(RSXLineObject* self, RSXConnectiveObject* source, uint8_t power, RSXPowerType type);
 
 #endif
 

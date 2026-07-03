@@ -3,6 +3,7 @@ libredstonex.so
 *.o
 *.out
 *.exe
+build/
 
 __pycache__/
 *.pyc

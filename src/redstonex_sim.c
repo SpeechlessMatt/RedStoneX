@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -8,6 +9,8 @@
 #include "redstonex_common.h"
 #include "redstonex_obj.h"
 #include "redstonex_types.h"
+
+#define RSX_SIM_DEQUE_CAPACITY 10000
 
 RSXSimulateDeque* rsx_create_sim_deque(uint32_t capacity) {
     RSXSimulateDeque* q = (RSXSimulateDeque*)malloc(sizeof(RSXSimulateDeque));
@@ -67,7 +70,7 @@ RSXSimulator* rsx_create_simulator() {
     sim->object_capacity = 100;
     sim->all_objects = (RSXConnectiveObject**)malloc(sim->object_capacity * sizeof(RSXConnectiveObject*));
 
-    sim->simulate_deque = rsx_create_sim_deque(10000);
+    sim->simulate_deque = rsx_create_sim_deque(RSX_SIM_DEQUE_CAPACITY);
 
     sim->wheel_size = 16;
     sim->current_tick = 0;
@@ -82,6 +85,9 @@ RSXSimulator* rsx_create_simulator() {
         sim->wheel_capacities[i] = 4;
         sim->tick_wheel[i] = (RSXConnectiveObject**)malloc(sim->wheel_capacities[i] * sizeof(RSXConnectiveObject*));
     }
+
+    sim->log_cb = NULL;
+    sim->log_user_data = NULL;
 
 #ifndef NDEBUG
     sim->tick_breakpoint_count = 0;
@@ -109,6 +115,25 @@ void rsx_destroy_simulator(RSXSimulator* sim) {
 #endif
 
     free(sim);
+}
+
+static void rsx_log(RSXSimulator* sim, RSXLogLevel level, const char* format, ...) {
+    if (sim == NULL || sim->log_cb == NULL) return;
+
+    char buffer[1024];
+    va_list args;
+    
+    va_start(args, format);
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+
+    sim->log_cb(level, buffer, sim->log_user_data);
+}
+
+void rsx_simulator_set_log_callback(RSXSimulator* sim, RSXLogCallback cb, void* user_data) {
+    if (!sim) return;
+    sim->log_cb = cb;
+    sim->log_user_data = user_data;
 }
 
 void rsx_simulator_ensure_object_capacity(RSXSimulator* sim, uint32_t required_capacity) {
@@ -147,11 +172,7 @@ void rsx_simulator_ensure_wheel_size(RSXSimulator* sim, uint32_t required_delay)
 
 void rsx_simulator_ensure_wheel_capacities(RSXSimulator* sim, uint32_t wheel_index, uint32_t required_capacity) {
    assert(sim != NULL); 
-
-   if (wheel_index >= sim->wheel_size) {
-       printf("[ERROR] error index access to tick_wheel! Current wheel size: %d, try to access index: %d", sim->wheel_size, wheel_index);
-       return;
-   }
+   assert(wheel_index < sim->wheel_size);
 
    if (sim->wheel_capacities[wheel_index] >= required_capacity) return;
 
@@ -168,7 +189,7 @@ void rsx_simulator_bind_object(RSXSimulator* sim, RSXConnectiveObject* obj) {
     if (obj == NULL) return;
 
     if (sim->is_running) {
-        printf("[WARNING] Cannot bind when simulator is running! \n");
+        rsx_log(sim, RSX_LOG_WARN, "Cannot bind when simulator is running! \n");
         return;
     }
 
@@ -177,7 +198,7 @@ void rsx_simulator_bind_object(RSXSimulator* sim, RSXConnectiveObject* obj) {
     }
 
     // 在bind的时候指定最大wheel就不需要动态扩容wheel了，我真厉害
-    if (obj->role == ROLE_SOURCE) {
+    if (obj->role == RSX_ROLE_SOURCE) {
         RSXSourceObject* source = (RSXSourceObject*)obj;
         rsx_simulator_ensure_wheel_size(sim, source->max_delay);
     }
@@ -189,10 +210,16 @@ void rsx_simulator_bind_object(RSXSimulator* sim, RSXConnectiveObject* obj) {
 
 void rsx_simulator_append_deque(RSXSimulator* sim, RSXConnectiveObject* target, RSXConnectiveObject* from, uint8_t power, RSXPowerType type){
     assert(sim != NULL);
-    if (!rsx_deque_push(sim->simulate_deque, target, from, power, type)) {
-        printf("[ERROR] 无法入队？满了？这么夸张？");
-        exit(EXIT_FAILURE);
+
+    bool push_success = rsx_deque_push(sim->simulate_deque, target, from, power, type);
+
+    if (!push_success) {
+        rsx_log(sim, RSX_LOG_ERROR,
+                "Simulation deque overflow! Capacity (%d) exceeded. "
+                "Target: %p, From: %p, Power: %d", RSX_SIM_DEQUE_CAPACITY, target, from, power);
     }
+
+    assert(push_success);
 }
 
 // TODO:
@@ -268,7 +295,7 @@ bool rsx_simulator_step(RSXSimulator* sim) {
             RSXConnectiveObject* obj = sim->tick_wheel[current_slot][i];
             assert(obj != NULL);
 
-            if (obj->role == ROLE_SOURCE) {
+            if (obj->role == RSX_ROLE_SOURCE) {
                 RSXSourceObject* src = (RSXSourceObject*)obj;
 
                 if (src->on_start_cb != NULL) {
@@ -303,7 +330,7 @@ bool rsx_simulator_step(RSXSimulator* sim) {
     for (uint32_t i = 0; i < sim->tick_breakpoint_count; i++) {
         if (sim->tick_breakpoints[i] == sim->current_tick) {
             sim->is_paused = true;
-            printf("[Tick Breakpoint: %d] Breakpoint Triggered! \n", sim->current_tick);
+            rsx_log(sim, RSX_LOG_INFO, "Tick Breakpoint: %d Triggered! \n", sim->current_tick);
             break;
         }
     }
@@ -320,7 +347,7 @@ void rsx_simulator_pause(RSXSimulator* sim) {
     assert(sim != NULL);
 
     sim->is_paused = true;
-    printf("[PAUSE] 已暂停运行! ");
+    rsx_log(sim, RSX_LOG_INFO, "Paused.");
 }
 #endif
 
@@ -331,7 +358,7 @@ void rsx_simulator_resume(RSXSimulator* sim) {
     if (!sim->is_paused) return;
 #endif
     if (!sim->is_running) {
-        printf("[RESUME] 从 Tick %d 恢复运行...\n", sim->current_tick);
+        rsx_log(sim, RSX_LOG_INFO, "Resume from Tick %d ...\n", sim->current_tick);
 #ifndef NDEBUG
         sim->is_paused = false;
 #endif
@@ -341,11 +368,9 @@ void rsx_simulator_resume(RSXSimulator* sim) {
 
 static inline void rsx_simulator_init_source(RSXSimulator* sim) {
     for (uint32_t i = 0; i < sim->object_count; i++) {
-        if (sim->all_objects[i] == NULL) {
-            printf("[ERROR] 神秘object变成NULL了，内存泄漏吗？Index: %d\n", i);
-            continue;
-        }
-        if (sim->all_objects[i]->role != ROLE_SOURCE) continue;
+        assert(sim->all_objects[i] != NULL && "Object in simulator registry became NULL! Memory corruption?");
+
+        if (sim->all_objects[i]->role != RSX_ROLE_SOURCE) continue;
 
         rsx_simulator_schedule_source(sim, sim->all_objects[i], 0);
     }
@@ -370,6 +395,6 @@ void rsx_simulator_run(RSXSimulator* sim) {
         sim->current_tick = 0;
         sim->empty_streak = 0;
 
-        printf("[FINISH] 电路已然停止\n");
+        rsx_log(sim, RSX_LOG_INFO, "Simulation finished: Circuit reached a steady state.");
     }
 }

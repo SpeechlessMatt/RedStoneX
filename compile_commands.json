@@ -13,7 +13,7 @@
       "-o",
       "src/redstonex_sim.o"
     ],
-    "directory": "/home/edbinmatt/PythonProjects/MCRedStone",
+    "directory": "/home/edbinmatt/RedStoneX",
     "output": "src/redstonex_sim.o"
   },
   {
@@ -30,7 +30,7 @@
       "-o",
       "src/redstonex_obj.o"
     ],
-    "directory": "/home/edbinmatt/PythonProjects/MCRedStone",
+    "directory": "/home/edbinmatt/RedStoneX",
     "output": "src/redstonex_obj.o"
   },
   {
@@ -47,11 +47,11 @@
       "-o",
       "src/redstonex_components.o"
     ],
-    "directory": "/home/edbinmatt/PythonProjects/MCRedStone",
+    "directory": "/home/edbinmatt/RedStoneX",
     "output": "src/redstonex_components.o"
   },
   {
-    "file": "tests/test.c",
+    "file": "tests/torch_relay_test.c",
     "arguments": [
       "/usr/bin/clang",
       "-O3",
@@ -59,11 +59,27 @@
       "-Wextra",
       "-Iinclude",
       "-fPIC",
-      "tests/test.c",
+      "tests/torch_relay_test.c",
       "-o",
-      "test_redstonex"
+      "build/torch_relay_test"
     ],
-    "directory": "/home/edbinmatt/PythonProjects/MCRedStone",
-    "output": "test_redstonex"
+    "directory": "/home/edbinmatt/RedStoneX",
+    "output": "build/torch_relay_test"
+  },
+  {
+    "file": "tests/comparator_test.c",
+    "arguments": [
+      "/usr/bin/clang",
+      "-O3",
+      "-Wall",
+      "-Wextra",
+      "-Iinclude",
+      "-fPIC",
+      "tests/comparator_test.c",
+      "-o",
+      "build/comparator_test"
+    ],
+    "directory": "/home/edbinmatt/RedStoneX",
+    "output": "build/comparator_test"
   }
 ]
