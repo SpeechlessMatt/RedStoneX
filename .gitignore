@@ -5,6 +5,7 @@ libredstonex.so
 *.out
 *.exe
 build/
+perf.data
 
 __pycache__/
 *.pyc

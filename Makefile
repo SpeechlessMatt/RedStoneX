@@ -16,11 +16,18 @@
 CC = clang
 CFLAGS = -O3 -Wall -Wextra -Iinclude -fPIC
 
+# compile for perf
+# CFLAGS = -O3 -g -fno-omit-frame-pointer -Wall -Wextra -Iinclude -fPIC
+
 SRCS = src/redstonex_sim.c src/redstonex_obj.c src/redstonex_components.c
 OBJS = $(SRCS:.c=.o)
 
 LIB_NAME = libredstonex.so
 BUILD_DIR = build
+
+BENCH_BINS = $(BUILD_DIR)/long_chain_benchmark \
+             $(BUILD_DIR)/high_fan_out_benchmark \
+             $(BUILD_DIR)/high_churn_torch_oscillators_benchmark
 
 # 默认目标：创建构建目录，编译库，运行测试
 all: $(BUILD_DIR) test $(LIB_NAME)
@@ -38,6 +45,25 @@ test: $(BUILD_DIR)/torch_relay_test $(BUILD_DIR)/comparator_test
 	@./$(BUILD_DIR)/torch_relay_test
 	@./$(BUILD_DIR)/comparator_test
 
+# Benchmark
+$(BUILD_DIR)/long_chain_benchmark: tests/long_chain_benchmark.c $(OBJS)
+	$(CC) $(CFLAGS) $^ -o $@
+
+$(BUILD_DIR)/high_fan_out_benchmark: tests/high_fan_out_benchmark.c $(OBJS)
+	$(CC) $(CFLAGS) $^ -o $@
+
+$(BUILD_DIR)/high_churn_torch_oscillators_benchmark: tests/high_churn_torch_oscillators_benchmark.c $(OBJS)
+	$(CC) $(CFLAGS) $^ -o $@
+
+bench: $(BUILD_DIR) $(BENCH_BINS)
+	@echo "====== Running RedstoneX Performance Benchmarks ======"
+	@./$(BUILD_DIR)/long_chain_benchmark
+	@echo "----------------------------------------------------"
+	@./$(BUILD_DIR)/high_fan_out_benchmark
+	@echo "----------------------------------------------------"
+	@./$(BUILD_DIR)/high_churn_torch_oscillators_benchmark
+	@echo "======================================================"
+
 $(LIB_NAME): $(OBJS)
 	$(CC) -shared $^ -o $@
 
@@ -47,4 +73,4 @@ $(LIB_NAME): $(OBJS)
 clean:
 	rm -rf src/*.o $(BUILD_DIR) $(LIB_NAME)
 
-.PHONY: all test clean
+.PHONY: all test bench clean

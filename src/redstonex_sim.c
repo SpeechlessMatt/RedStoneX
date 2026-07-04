@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -27,7 +28,7 @@
 #include "redstonex_obj.h"
 #include "redstonex_types.h"
 
-#define RSX_SIM_DEQUE_CAPACITY 10000
+#define RSX_SIM_DEQUE_CAPACITY 8000
 
 RSXSimulateDeque* rsx_create_sim_deque(uint32_t capacity) {
     RSXSimulateDeque* q = (RSXSimulateDeque*)malloc(sizeof(RSXSimulateDeque));
@@ -57,9 +58,42 @@ bool rsx_deque_is_empty(RSXSimulateDeque* q) {
     return q->tail == q->head;
 }
 
+void rsx_deque_ensure_capacity(RSXSimulateDeque* q) {
+    assert(q != NULL);
+    if ((q->tail + 1) % q->capacity != q->head) return;
+
+    uint32_t new_capacity = q->capacity * 2;
+    RSXSimulateEvent* new_buffer = (RSXSimulateEvent*)malloc(new_capacity * sizeof(RSXSimulateEvent));
+    assert(new_buffer != NULL && "FATAL ERROR: Out of memory in malloc!");
+
+    uint32_t count = 0;
+    // 环形队列复制的话 首先要拉直 分段复制 因为环形队列直接复制过去那个求余数是不对的 顺序就爆炸了
+    // 直接复制一片buffer的方法来自Gemini
+    if (q->tail >= q->head) {
+        // head....tail..
+        count = q->tail - q->head;
+        memcpy(new_buffer, &q->buffer[q->head], count * sizeof(RSXSimulateEvent));
+    }
+    else {
+        // ...tail..head..
+        uint32_t len1 = q->capacity - q->head;
+        memcpy(new_buffer, &q->buffer[q->head], len1 * sizeof(RSXSimulateEvent));
+        memcpy(&new_buffer[len1], q->buffer, q->tail * sizeof(RSXSimulateEvent));
+        count = len1 + q->tail;
+    }
+
+    free(q->buffer);
+    q->buffer = new_buffer;
+    q->capacity = new_capacity;
+    q->head = 0;
+    q->tail = count;
+}
+
 bool rsx_deque_push(RSXSimulateDeque* q, RSXConnectiveObject* target_obj, RSXConnectiveObject* from_obj, uint8_t power, RSXPowerType type) {
     if (q == NULL || target_obj == NULL || from_obj == NULL) return false;
-    if (rsx_deque_is_overflow(q)) return false;
+    if (rsx_deque_is_overflow(q)) {
+        rsx_deque_ensure_capacity(q);
+    };
 
     q->buffer[q->tail].target_object = target_obj;
     q->buffer[q->tail].source_object = from_obj;
