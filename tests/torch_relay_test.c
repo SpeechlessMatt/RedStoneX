@@ -121,5 +121,17 @@ int main() {
     assert(line_L2->base.power == expected_line_L2_power[2]);
     assert(line_L3->base.power == expected_line_L3_power[2]);
     assert(line_L4->base.power == expected_line_L4_power[2]);
+
+    rsx_destroy_torch_source(torch_1);
+    rsx_destroy_torch_source(torch_2);
+    rsx_destroy_relay_source(relay);
+
+    rsx_destroy_line_object(line_L1);
+    rsx_destroy_line_object(line_L2);
+    rsx_destroy_line_object(line_L3);
+    rsx_destroy_line_object(line_L4);
+
+    rsx_destroy_block(block_1);
+    rsx_destroy_block(block_2);
 }
 

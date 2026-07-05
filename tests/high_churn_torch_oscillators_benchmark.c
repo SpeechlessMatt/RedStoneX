@@ -38,7 +38,6 @@ int main() {
 
     uint32_t global_id = 1;
 
-    // 动态分配宿主容器，确保程序结束后可优雅释放内存
     RSXTorchSource** torch_1_arr = (RSXTorchSource**)malloc(sizeof(RSXTorchSource*) * CLOCK_COUNT);
     RSXTorchSource** torch_2_arr = (RSXTorchSource**)malloc(sizeof(RSXTorchSource*) * CLOCK_COUNT);
     RSXLineObject** line_1_arr = (RSXLineObject**)malloc(sizeof(RSXLineObject*) * CLOCK_COUNT);

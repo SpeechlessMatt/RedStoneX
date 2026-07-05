@@ -206,5 +206,24 @@ int main() {
     assert(comparator_2->base.base.power == expected_comparator_2[5]);
     assert(comparator_3->base.base.power == expected_comparator_3[5]);
 
-    return 0;
+    rsx_destroy_source_object(source);
+
+    rsx_destroy_comparator_source(comparator_1);
+    rsx_destroy_comparator_source(comparator_2);
+    rsx_destroy_comparator_source(comparator_3);
+
+    rsx_destroy_relay_source(relay_1);
+    rsx_destroy_relay_source(relay_2);
+
+    rsx_destroy_block(block);
+
+    rsx_destroy_line_object(line_L1);
+    rsx_destroy_line_object(line_L2);
+    rsx_destroy_line_object(line_L3);
+    rsx_destroy_line_object(line_L4);
+    rsx_destroy_line_object(line_L5);
+
+    for (int i = 0; i < LINE_1_SIZE; i++) rsx_destroy_line_object(line1[i]);
+    for (int i = 0; i < LINE_2_SIZE; i++) rsx_destroy_line_object(line2[i]);
+    for (int i = 0; i < LINE_3_SIZE; i++) rsx_destroy_line_object(line3[i]);
 }
