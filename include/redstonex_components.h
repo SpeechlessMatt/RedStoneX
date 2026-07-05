@@ -75,15 +75,23 @@ struct RSXBlock {
 
 bool rsx_init_relay_source(RSXRelaySource* relay_source, uint32_t id, const char* uri, uint8_t power, uint32_t max_delay, uint32_t delay);
 RSXRelaySource* rsx_create_relay_source(uint32_t id, uint8_t power, uint32_t max_delay);
+void rsx_clean_relay_source(RSXRelaySource* relay_source);
+void rsx_destroy_relay_source(RSXRelaySource* relay_source);
 
 bool rsx_init_comparator_source(RSXComparatorSource* comparator_source, uint32_t id, const char* uri, uint32_t delay);
 RSXComparatorSource* rsx_create_comparator_source(uint32_t id, uint32_t delay);
+void rsx_clean_comparator_source(RSXComparatorSource* comparator_source);
+void rsx_destroy_comparator_source(RSXComparatorSource* comparator_source);
 
 bool rsx_init_torch_source(RSXTorchSource* torch_source, uint32_t id, const char* uri, uint8_t power, uint32_t delay);
 RSXTorchSource* rsx_create_torch_source(uint32_t id, uint8_t power, uint32_t delay);
+void rsx_clean_torch_source(RSXTorchSource* torch_source);
+void rsx_destroy_torch_source(RSXTorchSource* torch_source);
 
 bool rsx_init_block(RSXBlock* block, uint32_t id, const char* uri, uint32_t limit);
 RSXBlock* rsx_create_block(uint32_t id, uint32_t limit);
+void rsx_clean_block(RSXBlock* block);
+void rsx_destroy_block(RSXBlock* block);
 
 void RSXRelaySource_connect_input(RSXRelaySource* self, RSXConnectiveObject* target);
 void RSXRelaySource_connect_output(RSXRelaySource* self, RSXConnectiveObject* target);

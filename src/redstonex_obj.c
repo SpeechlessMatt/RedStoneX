@@ -58,10 +58,17 @@ RSXConnectiveObject* rsx_create_object(uint32_t id, RSXObjectRole role, uint32_t
     return obj;
 }
 
-void rsx_destroy_object(RSXConnectiveObject* obj) {
+void rsx_clean_object(RSXConnectiveObject* obj) {
     if (obj == NULL) return;
 
     free(obj->connect_set);
+    obj->connect_set = NULL;
+}
+
+void rsx_destroy_object(RSXConnectiveObject* obj) {
+    if (obj == NULL) return;
+
+    rsx_clean_object(obj);
     free(obj);
 }
 
@@ -98,11 +105,19 @@ RSXLineObject* rsx_create_line_object(uint32_t id, uint32_t limit) {
     return line;
 }
 
-void destroy_line_object(RSXLineObject* line) {
+void rsx_clean_line_object(RSXLineObject* line) {
     if (line == NULL) return;
 
     free(line->power_map);
-    free(line->base.connect_set);
+    line->power_map = NULL;
+
+    rsx_clean_object(&line->base);
+}
+
+void destroy_line_object(RSXLineObject* line) {
+    if (line == NULL) return;
+
+    rsx_clean_line_object(line);
     free(line);
 }
 
@@ -132,10 +147,16 @@ RSXSourceObject* rsx_create_source_object(uint32_t id, uint32_t limit, uint8_t p
     return source;
 }
 
+void rsx_clean_source_object(RSXSourceObject* source) {
+    if (source == NULL) return;
+
+    rsx_clean_object(&source->base);
+}
+
 void rsx_destroy_source_object(RSXSourceObject* source) {
     if (source == NULL) return;
 
-    free(source->base.connect_set);
+    rsx_clean_source_object(source);
     free(source);
 }
 
@@ -167,11 +188,16 @@ RSXSlotObject* rsx_create_slot_object(uint32_t id, RSXConnectiveObject* parent, 
     return slot;
 }
 
+void rsx_clean_slot_object(RSXSlotObject* slot) {
+    if (slot == NULL) return;
+
+    rsx_clean_object(&slot->base);
+}
+
 void rsx_destroy_slot_object(RSXSlotObject* slot) {
     if (slot == NULL) return;
 
-    // TODO: 要不要对父类干点啥事？
-    free(slot->base.connect_set);
+    rsx_clean_slot_object(slot);
     free(slot);
 }
 

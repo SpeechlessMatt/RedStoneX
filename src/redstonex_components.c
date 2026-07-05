@@ -81,6 +81,21 @@ RSXRelaySource* rsx_create_relay_source(uint32_t id, uint8_t power, uint32_t max
     return relay_source;
 }
 
+void rsx_clean_relay_source(RSXRelaySource* relay_source) {
+    if (relay_source == NULL) return;
+
+    rsx_clean_slot_object(&relay_source->input_slot);
+    rsx_clean_slot_object(&relay_source->output_slot);
+    rsx_clean_source_object(&relay_source->base);
+}
+
+void rsx_destroy_relay_source(RSXRelaySource* relay_source) {
+    if (relay_source == NULL) return;
+
+    rsx_clean_relay_source(relay_source);
+    free(relay_source);
+}
+
 bool rsx_init_comparator_source(RSXComparatorSource* comparator_source, uint32_t id, const char* uri, uint32_t delay) {
     assert(comparator_source != NULL);
 
@@ -148,6 +163,25 @@ RSXComparatorSource* rsx_create_comparator_source(uint32_t id, uint32_t delay) {
     return comparator_source;
 }
 
+void rsx_clean_comparator_source(RSXComparatorSource* comparator_source) {
+    if (comparator_source == NULL) return;
+
+    rsx_clean_slot_object(&comparator_source->input_slot);
+    rsx_clean_slot_object(&comparator_source->output_slot);
+    rsx_clean_slot_object(&comparator_source->calculate_slot_a);
+    rsx_clean_slot_object(&comparator_source->calculate_slot_b);
+    free(comparator_source->power_map);
+    comparator_source->power_map = NULL;
+    rsx_clean_source_object(&comparator_source->base);
+}
+
+void rsx_destroy_comparator_source(RSXComparatorSource* comparator_source) {
+    if (comparator_source == NULL) return;
+
+    rsx_clean_comparator_source(comparator_source);
+    free(comparator_source);
+}
+
 bool rsx_init_torch_source(RSXTorchSource* torch_source, uint32_t id, const char* uri, uint8_t power, uint32_t delay) {
     assert(torch_source != NULL);
 
@@ -184,6 +218,21 @@ RSXTorchSource* rsx_create_torch_source(uint32_t id, uint8_t power, uint32_t del
     return torch_source;
 }
 
+void rsx_clean_torch_source(RSXTorchSource* torch_source) {
+    if (torch_source == NULL) return;
+
+    rsx_clean_slot_object(&torch_source->bottom_slot);
+    rsx_clean_slot_object(&torch_source->power_slot);
+    rsx_clean_source_object(&torch_source->base);
+}
+
+void rsx_destroy_torch_source(RSXTorchSource* torch_source) {
+    if (torch_source == NULL) return;
+
+    rsx_clean_torch_source(torch_source);
+    free(torch_source);
+}
+
 bool rsx_init_block(RSXBlock* block, uint32_t id, const char* uri, uint32_t limit) {
     assert(block != NULL);
 
@@ -208,6 +257,19 @@ RSXBlock* rsx_create_block(uint32_t id, uint32_t limit) {
     }
 
     return block;
+}
+
+void rsx_clean_block(RSXBlock* block) {
+    if (block == NULL) return;
+
+    rsx_clean_line_object(&block->base);
+}
+
+void rsx_destroy_block(RSXBlock* block) {
+    if (block == NULL) return;
+
+    rsx_clean_block(block);
+    free(block);
 }
 
 void RSXRelaySource_start(RSXSourceObject* base_src, RSXSimulator* sim) {

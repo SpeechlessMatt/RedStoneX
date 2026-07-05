@@ -87,28 +87,37 @@ struct RSXSlotObject {
 
 bool rsx_init_object(RSXConnectiveObject* obj, uint32_t id, RSXObjectRole role, const char* uri, uint8_t power, uint32_t limit, bool is_lossless, bool is_weak_transmissible);
 RSXConnectiveObject* rsx_create_object(uint32_t id, RSXObjectRole role, uint32_t limit, bool is_lossless, bool is_weak_transmissible);
+void rsx_clean_object(RSXConnectiveObject* obj);
 void rsx_destroy_object(RSXConnectiveObject* obj);
 
 bool rsx_init_line_object(RSXLineObject* line, uint32_t id, const char* uri, uint32_t limit, bool is_lossless, bool is_weak_transmissible);
 RSXLineObject* rsx_create_line_object(uint32_t id, uint32_t limit);
+void rsx_clean_line_object(RSXLineObject* line);
+void rsx_destroy_line_object(RSXLineObject* line);
 
 bool rsx_init_source_object(RSXSourceObject* source, uint32_t id, const char* uri, uint32_t limit, uint8_t power, uint32_t max_delay);
 RSXSourceObject* rsx_create_source_object(uint32_t id, uint32_t limit, uint8_t power);
+void rsx_clean_source_object(RSXSourceObject* source);
+void rsx_destroy_source_object(RSXSourceObject* source);
 
 bool rsx_init_slot_object(RSXSlotObject* slot, uint32_t id, const char* uri, uint32_t limit, RSXConnectiveObject* parent, RSXPowerType source_power_type);
 RSXSlotObject* rsx_create_slot_object(uint32_t id, RSXConnectiveObject* parent, RSXPowerType source_power_type);
+void rsx_clean_slot_object(RSXSlotObject* slot);
+void rsx_destroy_slot_object(RSXSlotObject* slot);
 
 bool rsx_connect_objects(RSXConnectiveObject* source, RSXConnectiveObject* target);
 bool rsx_disconnect_objects(RSXConnectiveObject* source, RSXConnectiveObject* target);
 
-void RSXConnectiveObject_update(RSXSimulateEvent* event, RSXSimulator* sim);
-void RSXLineObject_update(RSXSimulateEvent* event, RSXSimulator* sim);
-void RSXSourceObject_update(RSXSimulateEvent* event, RSXSimulator* sim);
-void RSXSlotObject_update(RSXSimulateEvent* event, RSXSimulator* sim);
-
 void RSXConnectiveObject_broadcast(RSXConnectiveObject* self, RSXConnectiveObject* source, uint8_t power, RSXPowerType type, RSXSimulator* sim);
-void RSXSourceObject_start(RSXSourceObject* self, RSXSimulator* sim);
+void RSXConnectiveObject_update(RSXSimulateEvent* event, RSXSimulator* sim);
+
 void RSXLineObject_update_map(RSXLineObject* self, RSXConnectiveObject* source, uint8_t power, RSXPowerType type);
+void RSXLineObject_update(RSXSimulateEvent* event, RSXSimulator* sim);
+
+void RSXSourceObject_start(RSXSourceObject* self, RSXSimulator* sim);
+void RSXSourceObject_update(RSXSimulateEvent* event, RSXSimulator* sim);
+
+void RSXSlotObject_update(RSXSimulateEvent* event, RSXSimulator* sim);
 
 #endif
 
