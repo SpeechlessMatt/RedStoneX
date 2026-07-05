@@ -160,26 +160,82 @@ make bench
 make clean
 ```
 
-## 💡 使用方式
+## � 快速开始
 
-目前仓库主要以 C 库形式提供仿真能力。可以通过 `include/` 中的头文件调用以下接口：
+如果你想快速上手这个项目，建议按下面的顺序看：
 
-- `rsx_create_simulator()`
-- `rsx_simulator_bind_object()`
-- `rsx_simulator_run()`
-- `rsx_simulator_step()`（可以使用RSX_DISABLE_BREAKPOINT禁止调试）
-- `rsx_simulator_add_tick_breakpoint()`（可以使用RSX_DISABLE_BREAKPOINT禁止调试）
+1. 先执行 `make` 生成库和测试程序。
+2. 阅读示例测试文件：
+   - [tests/torch_relay_test.c](tests/torch_relay_test.c)
+   - [tests/comparator_test.c](tests/comparator_test.c)
+3. 了解最核心的几个概念：模拟器、连接对象、信号源、导线和插槽。
+4. 通过最小示例搭建一条简单的信号链，再逐步扩展到继电器、比较器和火把等复杂场景。
 
-以及各种元件构造函数，如：
+### 最小示例
 
-- `rsx_create_source_object()`
-- `rsx_create_line_object()`
-- `rsx_create_relay_source()`
-- `rsx_create_comparator_source()`
-- `rsx_create_torch_source()`
-- `rsx_create_block()`
+下面是一段最小的使用流程：创建模拟器、创建一个信号源和一条导线、把它们连接起来、绑定到模拟器并运行。
 
-更加具体的接口使用方式可以参考 `tests/` 中**非** **benchmark** 的测试文件，两个测试文件是规范使用接口的正确示例。
+```c
+#include "redstonex_sim.h"
+#include "redstonex_obj.h"
+#include "redstonex_components.h"
+
+int main(void) {
+    RSXSimulator* sim = rsx_create_simulator();
+    RSXSourceObject* source = rsx_create_source_object(1, 4, 15);
+    RSXLineObject* line = rsx_create_line_object(2, 4);
+
+    rsx_connect_objects((RSXConnectiveObject*)source, (RSXConnectiveObject*)line);
+    rsx_simulator_bind_object(sim, (RSXConnectiveObject*)source);
+    rsx_simulator_bind_object(sim, (RSXConnectiveObject*)line);
+
+    rsx_simulator_run(sim);
+
+    printf("line power = %u\n", line->base.power);
+
+    rsx_destroy_source_object(source);
+    rsx_destroy_line_object(line);
+    rsx_destroy_simulator(sim);
+    return 0;
+}
+```
+
+### 使用流程总结
+
+- 创建 `RSXSimulator`：用于调度和执行整个红石模拟。
+- 创建对象：如 `RSXSourceObject`、`RSXLineObject`、`RSXRelaySource` 等。
+- 使用 `rsx_connect_objects()` 建立连接：连接的方向通常是“源 -> 目标”。
+- 使用 `rsx_simulator_bind_object()` 绑定对象：只有被绑定的对象才会参与模拟。
+- 调用 `rsx_simulator_run()` 或 `rsx_simulator_step()` 执行模拟。
+- 通过对象的 `power` 字段查看当前信号强度。
+
+## 🧩 核心 API 速查
+
+目前仓库主要以 C 库形式提供仿真能力。可以通过 [include](include) 目录中的头文件调用以下接口：
+
+- `rsx_create_simulator()`：创建模拟器实例。
+- `rsx_simulator_bind_object()`：把对象注册到模拟器中。
+- `rsx_simulator_run()`：连续运行直到模拟结束。
+- `rsx_simulator_step()`：单步执行一个 tick，适合调试。
+- `rsx_simulator_add_tick_breakpoint()`：在指定 tick 停下，便于观察状态。
+- `rsx_connect_objects()`：连接两个对象，建立传播关系。
+
+以及常见的元件构造函数：
+
+- `rsx_create_source_object()`：创建基础信号源。
+- `rsx_create_line_object()`：创建红石导线。
+- `rsx_create_relay_source()`：创建中继器。
+- `rsx_create_comparator_source()`：创建比较器。
+- `rsx_create_torch_source()`：创建红石火把。
+- `rsx_create_block()`：创建方块。
+
+## 📝 进一步阅读
+
+更多细节请查看：
+
+- [tests/torch_relay_test.c](tests/torch_relay_test.c)：最基础的火把与中继器示例。
+- [tests/comparator_test.c](tests/comparator_test.c)：比较器与复杂链路的示例。
+- [docs/USAGE.md](docs/USAGE.md)：更完整的使用说明和常见注意事项。
 
 ## 📄 许可证
 
