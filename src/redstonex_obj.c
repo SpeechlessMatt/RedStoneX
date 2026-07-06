@@ -114,7 +114,7 @@ void rsx_clean_line_object(RSXLineObject* line) {
     rsx_clean_object(&line->base);
 }
 
-void destroy_line_object(RSXLineObject* line) {
+void rsx_destroy_line_object(RSXLineObject* line) {
     if (line == NULL) return;
 
     rsx_clean_line_object(line);
