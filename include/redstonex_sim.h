@@ -82,6 +82,7 @@ void rsx_simulator_append_deque(RSXSimulator* sim, RSXConnectiveObject* target, 
 void rsx_simulator_schedule_source(RSXSimulator* sim, RSXConnectiveObject* source, uint32_t delay);
 
 RSXSimulator* rsx_create_simulator();
+void rsx_destroy_simulator(RSXSimulator* sim);
 void rsx_simulator_set_log_callback(RSXSimulator* sim, RSXLogCallback cb, void* user_data);
 void rsx_simulator_bind_object(RSXSimulator* sim, RSXConnectiveObject* obj);
 void rsx_simulator_run(RSXSimulator* sim);
