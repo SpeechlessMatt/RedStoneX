@@ -143,7 +143,7 @@ RSXSimulator* rsx_create_simulator() {
     sim->is_running = false;
 
 #ifndef RSX_DISABLE_BREAKPOINT
-    sim->is_paused = true;
+    sim->is_paused = false;
     sim->tick_breakpoint_count = 0;
     sim->tick_breakpoint_capacity = 20;
     sim->tick_breakpoints = (uint32_t*)malloc(sim->tick_breakpoint_capacity * sizeof(uint32_t));
