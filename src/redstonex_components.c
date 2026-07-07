@@ -312,6 +312,21 @@ void RSXRelaySource_connect_output(RSXRelaySource* self, RSXConnectiveObject* ta
     rsx_connect_objects((RSXConnectiveObject*)&self->output_slot, target);
 }
 
+void RSXRelaySource_set_delay(RSXRelaySource* self, uint32_t delay) {
+    assert(self != NULL);
+
+    if (delay > self->base.max_delay || delay < 1) { 
+        return;
+    }
+    self->delay = delay;
+}
+
+void RSXComparatorSource_set_mode(RSXComparatorSource* self, RSXComparatorSourceMode mode) {
+    assert(self != NULL);
+
+    self->mode = mode;
+}
+
 void RSXComparatorSource_start(RSXSourceObject* base_src, RSXSimulator* sim) {
     assert(sim != NULL && base_src != NULL);
     

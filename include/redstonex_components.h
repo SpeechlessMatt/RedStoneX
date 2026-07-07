@@ -95,9 +95,12 @@ void rsx_destroy_block(RSXBlock* block);
 
 void RSXRelaySource_connect_input(RSXRelaySource* self, RSXConnectiveObject* target);
 void RSXRelaySource_connect_output(RSXRelaySource* self, RSXConnectiveObject* target);
+void RSXRelaySource_set_delay(RSXRelaySource* self, uint32_t delay);
 
 void RSXRelaySource_start(RSXSourceObject* base_src, RSXSimulator* sim);
 void RSXRelaySource_update(RSXSimulateEvent* event, RSXSimulator* sim);
+
+void RSXComparatorSource_set_mode(RSXComparatorSource* self, RSXComparatorSourceMode mode);
 
 void RSXComparatorSource_start(RSXSourceObject* base_src, RSXSimulator* sim);
 void RSXComparatorSource_update(RSXSimulateEvent* event, RSXSimulator* sim);
