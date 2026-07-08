@@ -12,6 +12,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 # Library
 add_library(redstonex SHARED)
@@ -118,4 +119,27 @@ install(
     FILE RedStoneXTargets.cmake
     NAMESPACE RedStoneX::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/RedStoneX
+)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/RedStoneXConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RedStoneXConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/RedStoneXConfig.cmake"
+
+    INSTALL_DESTINATION
+        ${CMAKE_INSTALL_LIBDIR}/cmake/RedStoneX
+)
+
+install(
+    FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/RedStoneXConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/RedStoneXConfigVersion.cmake"
+
+    DESTINATION
+        ${CMAKE_INSTALL_LIBDIR}/cmake/RedStoneX
 )
