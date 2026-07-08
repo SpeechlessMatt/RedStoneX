@@ -7,7 +7,13 @@ project(
     LANGUAGES C
 )
 
-option(REDSTONEX_INSTALL "Install RedStoneX library" ON)
+if(NOT DEFINED REDSTONEX_INSTALL)
+    if(PROJECT_IS_TOP_LEVEL)
+        set(REDSTONEX_INSTALL ON)
+    else()
+        set(REDSTONEX_INSTALL OFF)
+    endif()
+endif()
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
