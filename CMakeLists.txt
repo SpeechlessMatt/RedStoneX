@@ -7,6 +7,8 @@ project(
     LANGUAGES C
 )
 
+option(REDSTONEX_INSTALL "Install RedStoneX library" ON)
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
@@ -100,46 +102,48 @@ target_link_libraries(high_churn_torch_oscillators_benchmark
 )
 
 # Install
-install(
-    TARGETS redstonex
-    EXPORT RedStoneXTargets
+if(REDSTONEX_INSTALL)
+    install(
+        TARGETS redstonex
+        EXPORT RedStoneXTargets
 
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
 
-install(
-    DIRECTORY include/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+    install(
+        DIRECTORY include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 
-install(
-    EXPORT RedStoneXTargets
-    FILE RedStoneXTargets.cmake
-    NAMESPACE RedStoneX::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/RedStoneX
-)
+    install(
+        EXPORT RedStoneXTargets
+        FILE RedStoneXTargets.cmake
+        NAMESPACE RedStoneX::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/RedStoneX
+    )
 
-write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/RedStoneXConfigVersion.cmake"
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion
-)
-
-configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RedStoneXConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/RedStoneXConfig.cmake"
-
-    INSTALL_DESTINATION
-        ${CMAKE_INSTALL_LIBDIR}/cmake/RedStoneX
-)
-
-install(
-    FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/RedStoneXConfig.cmake"
+    write_basic_package_version_file(
         "${CMAKE_CURRENT_BINARY_DIR}/RedStoneXConfigVersion.cmake"
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion
+    )
 
-    DESTINATION
-        ${CMAKE_INSTALL_LIBDIR}/cmake/RedStoneX
-)
+    configure_package_config_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RedStoneXConfig.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/RedStoneXConfig.cmake"
+
+        INSTALL_DESTINATION
+            ${CMAKE_INSTALL_LIBDIR}/cmake/RedStoneX
+    )
+
+    install(
+        FILES
+            "${CMAKE_CURRENT_BINARY_DIR}/RedStoneXConfig.cmake"
+            "${CMAKE_CURRENT_BINARY_DIR}/RedStoneXConfigVersion.cmake"
+
+        DESTINATION
+            ${CMAKE_INSTALL_LIBDIR}/cmake/RedStoneX
+    )
+endif()
