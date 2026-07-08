@@ -7,11 +7,55 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <time.h>
 #include <assert.h>
 
 #include "redstonex_obj.h"
 #include "redstonex_sim.h"
+
+#ifdef _WIN32
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+    
+    typedef LARGE_INTEGER Timestamp;
+
+    static inline Timestamp get_current_time() {
+        Timestamp t;
+        QueryPerformanceCounter(&t);
+        return t;
+    }
+
+    static inline double get_elapsed_ms(Timestamp start, Timestamp end) {
+        LARGE_INTEGER freq;
+        QueryPerformanceFrequency(&freq);
+        return (double)(end.QuadPart - start.QuadPart) * 1000.0 / freq.QuadPart;
+    }
+
+    static inline long long get_elapsed_ns(Timestamp start, Timestamp end) {
+        LARGE_INTEGER freq;
+        QueryPerformanceFrequency(&freq);
+        return (end.QuadPart - start.QuadPart) * 1000000000LL / freq.QuadPart;
+    }
+#else
+    #include <time.h>
+
+    typedef struct timespec Timestamp;
+
+    static inline Timestamp get_current_time() {
+        Timestamp t;
+        clock_gettime(CLOCK_MONOTONIC, &t);
+        return t;
+    }
+
+    static inline double get_elapsed_ms(Timestamp start, Timestamp end) {
+        long long ns = (end.tv_sec - start.tv_sec) * 1000000000LL + (end.tv_nsec - start.tv_nsec);
+        return ns / 1000000.0;
+    }
+
+    static inline long long get_elapsed_ns(Timestamp start, Timestamp end) {
+        return (end.tv_sec - start.tv_sec) * 1000000000LL + (end.tv_nsec - start.tv_nsec);
+    }
+#endif
+
 
 #define CONN_OBJ(a, b) do { \
     if (!rsx_connect_objects((RSXConnectiveObject*)(a), (RSXConnectiveObject*)(b))) { \
@@ -73,17 +117,16 @@ int main() {
     size_t total_nodes = 1 + WIRE_COUNT;
     printf("[Benchmark Fan-out] Running on %zu nodes for %d ticks...\n", total_nodes, TICK_COUNT);
     
-    struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    Timestamp start = get_current_time();
 
     for (int t = 0; t < TICK_COUNT; t++) {
         rsx_simulator_step(sim);
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    Timestamp end = get_current_time();
 
-    long long elapsed_ns = (end.tv_sec - start.tv_sec) * 1000000000LL + (end.tv_nsec - start.tv_nsec);
-    double elapsed_ms = elapsed_ns / 1000000.0;
+    long long elapsed_ns = get_elapsed_ns(start, end);
+    double elapsed_ms = get_elapsed_ms(start, end);
 
     printf("\n=================== Fan-out Results ===================\n");
     printf("  Topology        : 1 Source -> %d Wires (Star Network)\n", WIRE_COUNT);
