@@ -51,6 +51,59 @@ void connect_line_chain(RSXLineObject** line_arr, uint32_t count) {
     }
 }
 
+uint32_t deque_size(const RSXSimulateDeque* deque) {
+    if (deque->tail >= deque->head) return deque->tail - deque->head;
+    return deque->capacity - deque->head + deque->tail;
+}
+
+bool deque_has_event(const RSXSimulateDeque* deque, RSXConnectiveObject* target, RSXConnectiveObject* source, uint8_t power, RSXPowerType type) {
+    uint32_t count = deque_size(deque);
+    for (uint32_t i = 0; i < count; i++) {
+        uint32_t index = (deque->head + i) % deque->capacity;
+        RSXSimulateEvent event = deque->buffer[index];
+        if (event.target_object == target && event.source_object == source && event.power == power && event.type == type) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void test_rollback_on_decreasing_nonzero_case() {
+    RSXSimulator* sim = rsx_create_simulator();
+    assert(sim != NULL);
+
+    RSXLineObject* line_source = rsx_create_line_object(10011, 4);
+    RSXLineObject* line_target = rsx_create_line_object(10012, 4);
+    RSXSourceObject* source_alt = rsx_create_source_object(10013, 4, 14);
+
+    assert(line_source != NULL && line_target != NULL && source_alt != NULL);
+    CONN_OBJ(line_source, line_target);
+    CONN_OBJ(source_alt, line_target);
+
+    RSXLineObject_update_map(line_target, (RSXConnectiveObject*)line_source, 15, RSX_POWER_WEAK);
+    RSXLineObject_update_map(line_target, (RSXConnectiveObject*)source_alt, 14, RSX_POWER_WEAK);
+    line_target->base.power = 15;
+
+    RSXSimulateEvent event = {
+        .target_object = (RSXConnectiveObject*)line_target,
+        .source_object = (RSXConnectiveObject*)line_source,
+        .power = 0,
+        .type = RSX_POWER_WEAK
+    };
+    RSXLineObject_update(&event, sim);
+
+    assert(line_target->base.power == 14);
+    assert(deque_size(sim->simulate_deque) == 2);
+    assert(deque_has_event(sim->simulate_deque, (RSXConnectiveObject*)source_alt, (RSXConnectiveObject*)line_target, 14, RSX_POWER_WEAK));
+    assert(deque_has_event(sim->simulate_deque, (RSXConnectiveObject*)line_source, (RSXConnectiveObject*)line_target, 14, RSX_POWER_WEAK));
+
+    rsx_destroy_source_object(source_alt);
+    rsx_destroy_line_object(line_target);
+    rsx_destroy_line_object(line_source);
+    rsx_destroy_simulator(sim);
+}
+
 void test_rollback_residual_case() {
     RSXSimulator* sim = rsx_create_simulator();
     assert(sim != NULL);
@@ -269,4 +322,5 @@ int main() {
     for (int i = 0; i < LINE_3_SIZE; i++) rsx_destroy_line_object(line3[i]);
 
     test_rollback_residual_case();
+    test_rollback_on_decreasing_nonzero_case();
 }
