@@ -51,6 +51,47 @@ void connect_line_chain(RSXLineObject** line_arr, uint32_t count) {
     }
 }
 
+void test_rollback_residual_case() {
+    RSXSimulator* sim = rsx_create_simulator();
+    assert(sim != NULL);
+
+    RSXSourceObject* source_a = rsx_create_source_object(10001, 4, 15);
+    RSXSourceObject* source_b = rsx_create_source_object(10002, 4, 0);
+    RSXLineObject* line_left = rsx_create_line_object(10003, 4);
+    RSXLineObject* line_middle = rsx_create_line_object(10004, 4);
+
+    assert(source_a != NULL && source_b != NULL && line_left != NULL && line_middle != NULL);
+
+    CONN_OBJ(source_a, line_left);
+    CONN_OBJ(line_left, line_middle);
+    CONN_OBJ(source_b, line_middle);
+
+    BIND_OBJ(sim, source_a);
+    BIND_OBJ(sim, source_b);
+    BIND_OBJ(sim, line_left);
+    BIND_OBJ(sim, line_middle);
+
+    rsx_simulator_run(sim);
+
+    assert(line_middle->base.power == 14);
+    assert(line_left->base.power == 15);
+
+    source_b->base.power = 14;
+    source_a->base.power = 0;
+    rsx_simulator_schedule_source(sim, (RSXConnectiveObject*)source_b, 0);
+    rsx_simulator_schedule_source(sim, (RSXConnectiveObject*)source_a, 0);
+    rsx_simulator_run(sim);
+
+    assert(line_middle->base.power == 14);
+    assert(line_left->base.power == 13);
+
+    rsx_destroy_line_object(line_middle);
+    rsx_destroy_line_object(line_left);
+    rsx_destroy_source_object(source_b);
+    rsx_destroy_source_object(source_a);
+    rsx_destroy_simulator(sim);
+}
+
 int main() {
     RSXSimulator* sim = rsx_create_simulator();
     assert(sim != NULL);
@@ -226,4 +267,6 @@ int main() {
     for (int i = 0; i < LINE_1_SIZE; i++) rsx_destroy_line_object(line1[i]);
     for (int i = 0; i < LINE_2_SIZE; i++) rsx_destroy_line_object(line2[i]);
     for (int i = 0; i < LINE_3_SIZE; i++) rsx_destroy_line_object(line3[i]);
+
+    test_rollback_residual_case();
 }
