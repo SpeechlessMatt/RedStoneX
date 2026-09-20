@@ -351,6 +351,10 @@ void RSXLineObject_update(RSXSimulateEvent* event, RSXSimulator* sim) {
         // 调用通用update（这个update会把自己能量传给其他人）
         RSX_SUPER_BROADCAST(self, source, self->base.power, RSX_POWER_WEAK, sim);
     }
+    if (final_power == 0 && self->base.power > 0) {
+        // 在提前能量比较剪枝时，给触发回退的入边补一次还路，避免残留状态
+        rsx_simulator_append_deque(sim, source, (RSXConnectiveObject*)self, self->base.power, RSX_POWER_WEAK);
+    }
 }
 
 void RSXSourceObject_start(RSXSourceObject* self, RSXSimulator* sim) {

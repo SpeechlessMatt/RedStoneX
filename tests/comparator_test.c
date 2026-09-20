@@ -51,6 +51,100 @@ void connect_line_chain(RSXLineObject** line_arr, uint32_t count) {
     }
 }
 
+uint32_t deque_size(const RSXSimulateDeque* deque) {
+    if (deque->tail >= deque->head) return deque->tail - deque->head;
+    return deque->capacity - deque->head + deque->tail;
+}
+
+bool deque_has_event(const RSXSimulateDeque* deque, RSXConnectiveObject* target, RSXConnectiveObject* source, uint8_t power, RSXPowerType type) {
+    uint32_t count = deque_size(deque);
+    for (uint32_t i = 0; i < count; i++) {
+        uint32_t index = (deque->head + i) % deque->capacity;
+        RSXSimulateEvent event = deque->buffer[index];
+        if (event.target_object == target && event.source_object == source && event.power == power && event.type == type) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void test_rollback_on_decreasing_nonzero_case() {
+    RSXSimulator* sim = rsx_create_simulator();
+    assert(sim != NULL);
+
+    RSXLineObject* line_source = rsx_create_line_object(10011, 4);
+    RSXLineObject* line_target = rsx_create_line_object(10012, 4);
+    RSXSourceObject* source_alt = rsx_create_source_object(10013, 4, 14);
+
+    assert(line_source != NULL && line_target != NULL && source_alt != NULL);
+    CONN_OBJ(line_source, line_target);
+    CONN_OBJ(source_alt, line_target);
+
+    RSXLineObject_update_map(line_target, (RSXConnectiveObject*)line_source, 15, RSX_POWER_WEAK);
+    RSXLineObject_update_map(line_target, (RSXConnectiveObject*)source_alt, 14, RSX_POWER_WEAK);
+    line_target->base.power = 15;
+
+    RSXSimulateEvent event = {
+        .target_object = (RSXConnectiveObject*)line_target,
+        .source_object = (RSXConnectiveObject*)line_source,
+        .power = 0,
+        .type = RSX_POWER_WEAK
+    };
+    RSXLineObject_update(&event, sim);
+
+    assert(line_target->base.power == 14);
+    assert(deque_size(sim->simulate_deque) == 2);
+    assert(deque_has_event(sim->simulate_deque, (RSXConnectiveObject*)source_alt, (RSXConnectiveObject*)line_target, 14, RSX_POWER_WEAK));
+    assert(deque_has_event(sim->simulate_deque, (RSXConnectiveObject*)line_source, (RSXConnectiveObject*)line_target, 14, RSX_POWER_WEAK));
+
+    rsx_destroy_source_object(source_alt);
+    rsx_destroy_line_object(line_target);
+    rsx_destroy_line_object(line_source);
+    rsx_destroy_simulator(sim);
+}
+
+void test_rollback_residual_case() {
+    RSXSimulator* sim = rsx_create_simulator();
+    assert(sim != NULL);
+
+    RSXSourceObject* source_a = rsx_create_source_object(10001, 4, 15);
+    RSXSourceObject* source_b = rsx_create_source_object(10002, 4, 0);
+    RSXLineObject* line_left = rsx_create_line_object(10003, 4);
+    RSXLineObject* line_middle = rsx_create_line_object(10004, 4);
+
+    assert(source_a != NULL && source_b != NULL && line_left != NULL && line_middle != NULL);
+
+    CONN_OBJ(source_a, line_left);
+    CONN_OBJ(line_left, line_middle);
+    CONN_OBJ(source_b, line_middle);
+
+    BIND_OBJ(sim, source_a);
+    BIND_OBJ(sim, source_b);
+    BIND_OBJ(sim, line_left);
+    BIND_OBJ(sim, line_middle);
+
+    rsx_simulator_run(sim);
+
+    assert(line_middle->base.power == 14);
+    assert(line_left->base.power == 15);
+
+    source_b->base.power = 14;
+    source_a->base.power = 0;
+    rsx_simulator_schedule_source(sim, (RSXConnectiveObject*)source_b, 0);
+    rsx_simulator_schedule_source(sim, (RSXConnectiveObject*)source_a, 0);
+    rsx_simulator_run(sim);
+
+    assert(line_middle->base.power == 14);
+    assert(line_left->base.power == 13);
+
+    rsx_destroy_line_object(line_middle);
+    rsx_destroy_line_object(line_left);
+    rsx_destroy_source_object(source_b);
+    rsx_destroy_source_object(source_a);
+    rsx_destroy_simulator(sim);
+}
+
 int main() {
     RSXSimulator* sim = rsx_create_simulator();
     assert(sim != NULL);
@@ -226,4 +320,7 @@ int main() {
     for (int i = 0; i < LINE_1_SIZE; i++) rsx_destroy_line_object(line1[i]);
     for (int i = 0; i < LINE_2_SIZE; i++) rsx_destroy_line_object(line2[i]);
     for (int i = 0; i < LINE_3_SIZE; i++) rsx_destroy_line_object(line3[i]);
+
+    test_rollback_residual_case();
+    test_rollback_on_decreasing_nonzero_case();
 }
